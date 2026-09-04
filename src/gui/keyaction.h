@@ -86,7 +86,7 @@ public:
     QUuid   animInfo(bool& onlyOnce, bool& stopOnRelease)       const;
 
     // Perform keydown action (if any)
-    void keyEvent(KbBind* bind, bool down);
+    void keyEvent(KbBind* bind, const QString& key, bool down);
     // Perform keyup action (if any)
     void keyRelease(KbBind* bind);
     // Returns the contents of the DISPLAY env var set appropriately for the X11 screen the cursor is in.

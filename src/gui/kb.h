@@ -12,6 +12,7 @@
 #include <limits>
 #include "batterysystemtrayicon.h"
 #include "ckbversionnumber.h"
+#include <ckbnextconfig.h>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QStringView>
@@ -51,6 +52,12 @@ class Kb : public QThread
 public:
     // USB model and serial number
     QString usbModel, usbSerial;
+#ifdef WITH_ENV_VARS
+    // Unstripped USB iProduct string, as reported by the device (for CKBNEXT_IPRODUCT)
+    QString usbProductRaw;
+    // Public accessor to the (otherwise private) devnode path, for CKBNEXT_DEVPATH
+    inline QString devicePath() const { return devpath; }
+#endif
     // Device information
     QStringList features;
 

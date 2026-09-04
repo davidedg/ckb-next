@@ -308,5 +308,5 @@ void KbBind::keyEvent(const QString& key, bool down){
     QString rKey = globalRemap(key);
     KeyAction* act = bindAction(rKey);
     if(act)
-        act->keyEvent(this, down);
+        act->keyEvent(this, rKey, down);
 }
