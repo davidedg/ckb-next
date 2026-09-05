@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <ckbnextconfig.h>
 #include "keyaction.h"
 #include "kb.h"
 #include "kbanim.h"
@@ -273,7 +274,7 @@ QString KeyAction::driverName() const {
     return _value;
 }
 
-void KeyAction::keyEvent(KbBind* bind, bool down){
+void KeyAction::keyEvent(KbBind* bind, const QString& key, bool down){
     // No need to respond to standard actions
     if(!isSpecial())
         return;
@@ -464,6 +465,16 @@ void KeyAction::keyEvent(KbBind* bind, bool down){
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
         if(!newDisplay.isEmpty())
             env.insert(QLatin1String("DISPLAY"), newDisplay);
+
+#ifdef WITH_ENV_VARS
+        // Identify the device and key that triggered this program to the launched process.
+        Kb* kb = bind->devParent();
+        env.insert(QLatin1String("CKBNEXT_IDPRODUCTCODE"), QString("0x%1").arg(kb->productID, 4, 16, QLatin1Char('0')));
+        env.insert(QLatin1String("CKBNEXT_IPRODUCT"), kb->usbProductRaw);
+        env.insert(QLatin1String("CKBNEXT_ISERIAL"), kb->usbSerial);
+        env.insert(QLatin1String("CKBNEXT_DEVPATH"), kb->devicePath());
+        env.insert(QLatin1String("CKBNEXT_KEY"), key);
+#endif
 
         // Start the program. Wrap it around sh to parse arguments.
         if((down && (stop & PROGRAM_PR_MULTI))

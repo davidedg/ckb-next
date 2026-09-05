@@ -126,6 +126,7 @@ option(NO_FAIR_MUTEX_QUEUEING "Disable fair mutex queueing. Debugging only." OFF
 option(DEBUG_INPUT_SYNC "Print a debug message every time an event bundle is delivered to the OS." OFF)
 option(FPS_COUNTER     "Enable FPS counters." OFF)
 option(WERROR     "Enable Werror (for CI)" OFF)
+option(WITH_ENV_VARS  "Expose CKBNEXT_* environment variables identifying the triggering device to programs launched from key bindings." OFF)
 
 if (NOT DISALLOW_SYSVINIT)
     find_program(START_STOP_DAEMON start-stop-daemon
