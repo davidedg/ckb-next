@@ -493,6 +493,17 @@ void Kb::frameUpdate(){
     if(prevProfile != _currentProfile){
         writeProfileHeader();
         cmd.write(" ");
+        // Push every mode's name into the daemon's in-memory profile too (not just
+        // the active mode, handled below), so `mode <n> get :name` works for any
+        // mode. The daemon only has MODE_COUNT (6) mode slots per device - same
+        // limit that already applies to the lighting/animation index below.
+        const KbProfile::ModeList& profileModes = _currentProfile->modes();
+        int nameableModes = qMin(profileModes.count(), 6);
+        for(int i = 0; i < nameableModes; i++){
+            cmd.write(QString("mode %1 name ").arg(i + 1).toLatin1());
+            cmd.write(QUrl::toPercentEncoding(profileModes.at(i)->name()));
+            cmd.write(" ");
+        }
         prevProfile = _currentProfile;
     }
 
