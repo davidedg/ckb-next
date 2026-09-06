@@ -504,8 +504,18 @@ void Kb::frameUpdate(){
         index = 3 + index % 3;
 
     // Send lighting/binding to driver
-    if(prevMode != _currentMode || changed)
+    bool modeSwitched = (prevMode != _currentMode || changed);
+    if(modeSwitched)
         cmd.write(QString("mode %1 switch ").arg(index + 1).toLatin1());
+    // Keep the daemon's in-memory mode name in sync so `get :name` reflects it
+    // even for software profiles (which are otherwise never pushed to the daemon
+    // outside of hwSave()). Re-sent whenever the mode becomes active, or when it
+    // has unsaved changes (e.g. was just renamed while already active).
+    if(modeSwitched || _currentMode->needsSave()){
+        cmd.write("name ");
+        cmd.write(QUrl::toPercentEncoding(_currentMode->name()));
+        cmd.write(" ");
+    }
     perf->applyIndicators(index, iState);
     light->frameUpdate(cmd, monochrome);
     bind->update(cmd, notifyNumber, changed);
