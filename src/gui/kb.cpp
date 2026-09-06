@@ -126,6 +126,9 @@ Kb::Kb(QObject *parent, const QString& path) :
     prefsPath = "Devices/" + usbSerial;
 
     hwModeCount = (_model == KeyMap::K95) ? 3 : 1;
+    // Assumed until the daemon answers `get :modecount` on connect (see run());
+    // matches ckb-next-daemon's compiled-in default.
+    daemonModeCount = DAEMON_MODE_COUNT_DEFAULT;
     // Open cmd in non-blocking mode so that it doesn't lock up if nothing is reading
     // (e.g. if the daemon crashed and didn't clean up the node)
     int fd = open(cmdpath.toLatin1().constData(), O_WRONLY | O_NONBLOCK);
@@ -193,8 +196,8 @@ Kb::Kb(QObject *parent, const QString& path) :
         cmd.write(QString(" mode %1 get :hwid").arg(i + 1).toLatin1());
         hwLoading[i + 1] = true;
     }
-    // Ask for current indicator and key state
-    cmd.write(" get :i :keys\n");
+    // Ask for current indicator and key state, and the daemon's configured mode count
+    cmd.write(" get :i :keys :modecount\n");
     cmd.flush();
 
     emit infoUpdated();
@@ -454,6 +457,38 @@ void Kb::writeProfileHeader(){
     cmd.write(_currentProfile->id().modifiedString().toLatin1());
 }
 
+void Kb::pushModeNames(){
+    // Sets each mode's name in the daemon's in-memory profile, without touching
+    // lighting/binding/erasing anything - safe to call any time, not just on
+    // profile load. Capped at daemonModeCount: the daemon has no slot for modes
+    // beyond that (see checkModeCountWarning()).
+    const KbProfile::ModeList& profileModes = _currentProfile->modes();
+    int nameableModes = qMin(profileModes.count(), daemonModeCount);
+    for(int i = 0; i < nameableModes; i++){
+        cmd.write(QString("mode %1 name ").arg(i + 1).toLatin1());
+        cmd.write(QUrl::toPercentEncoding(profileModes.at(i)->name()));
+        cmd.write(" ");
+    }
+}
+
+void Kb::checkModeCountWarning(){
+    if(!_currentProfile)
+        return;
+    if(_currentProfile->modeCount() > daemonModeCount){
+        // Warn at most once per profile instance while it stays over the limit -
+        // naturally re-arms if the profile changes (different pointer) or if this
+        // same profile later drops under the limit and goes over it again.
+        if(modeCountWarnedProfile != _currentProfile){
+            modeCountWarnedProfile = _currentProfile;
+            emit modeCountExceeded(_currentProfile->modeCount(), daemonModeCount);
+            emit modeCountStatusChanged();
+        }
+    } else if(modeCountWarnedProfile == _currentProfile){
+        modeCountWarnedProfile = nullptr;
+        emit modeCountStatusChanged();
+    }
+}
+
 void Kb::fwUpdate(const QString& path){
     fwUpdPath = path;
     // Write the active command to ensure it's not ignored
@@ -495,24 +530,26 @@ void Kb::frameUpdate(){
         cmd.write(" ");
         // Push every mode's name into the daemon's in-memory profile too (not just
         // the active mode, handled below), so `mode <n> get :name` works for any
-        // mode. The daemon only has MODE_COUNT (6) mode slots per device - same
-        // limit that already applies to the lighting/animation index below.
-        const KbProfile::ModeList& profileModes = _currentProfile->modes();
-        int nameableModes = qMin(profileModes.count(), 6);
-        for(int i = 0; i < nameableModes; i++){
-            cmd.write(QString("mode %1 name ").arg(i + 1).toLatin1());
-            cmd.write(QUrl::toPercentEncoding(profileModes.at(i)->name()));
-            cmd.write(" ");
-        }
+        // mode.
+        pushModeNames();
         prevProfile = _currentProfile;
     }
+    // Checked every frame (not just on profile change) so adding a mode to the
+    // profile that's already selected is caught immediately, not only after
+    // switching away and back.
+    checkModeCountWarning();
 
     // Update current mode
-    int index = _currentProfile->indexOf(_currentMode);
-    // ckb-daemon only has 6 modes: 3 hardware, 3 non-hardware. Beyond mode six, switch back to four.
-    // e.g. 1, 2, 3, 4, 5, 6, 4, 5, 6, 4, 5, 6 ...
-    if(index >= 6)
-        index = 3 + index % 3;
+    int rawIndex = _currentProfile->indexOf(_currentMode);
+    int index = rawIndex;
+    // The daemon only keeps daemonModeCount software mode slots per device: the
+    // first hwModeCount of those double as actual onboard hardware slots, the
+    // rest form a rotating window shared by every mode beyond that.
+    // e.g. (hwModeCount=3, daemonModeCount=6): 1,2,3,4,5,6,4,5,6,4,5,6 ...
+    if(index >= daemonModeCount){
+        int extraSlots = daemonModeCount - hwModeCount;
+        index = (extraSlots > 0) ? hwModeCount + (index - hwModeCount) % extraSlots : hwModeCount - 1;
+    }
 
     // Send lighting/binding to driver
     bool modeSwitched = (prevMode != _currentMode || changed);
@@ -522,7 +559,10 @@ void Kb::frameUpdate(){
     // even for software profiles (which are otherwise never pushed to the daemon
     // outside of hwSave()). Re-sent whenever the mode becomes active, or when it
     // has unsaved changes (e.g. was just renamed while already active).
-    if(modeSwitched || _currentMode->needsSave()){
+    // Skipped for modes beyond daemonModeCount: `index` above was remapped onto a
+    // slot shared with (and correctly named for) an in-range mode - sending this
+    // mode's name would clobber that slot's real name with the wrong one.
+    if(rawIndex < daemonModeCount && (modeSwitched || _currentMode->needsSave())){
         cmd.write("name ");
         cmd.write(QUrl::toPercentEncoding(_currentMode->name()));
         cmd.write(" ");
@@ -669,6 +709,21 @@ void Kb::readNotify(const QString& line){
             // Don't change the name if it's a truncated version of what we already have
             _hwProfile->name(name);
             emit profileRenamed();
+        }
+    } else if(components[0] == "modecount"){
+        // Number of software mode slots the daemon was configured with (see
+        // --modecount on ckb-next-daemon). Comes back asynchronously in response
+        // to the `get :modecount` sent on connect (see run()), so anything that
+        // assumed DAEMON_MODE_COUNT_DEFAULT in the meantime needs to be patched
+        // up once the real value is known.
+        bool ok;
+        int newCount = components[1].toInt(&ok);
+        if(ok && newCount > 0 && newCount != daemonModeCount){
+            daemonModeCount = newCount;
+            pushModeNames();
+            cmd.flush();
+            checkModeCountWarning();
+            emit modeCountStatusChanged();
         }
     } else if(components[0] == "mode"){
         // Mode-specific data
