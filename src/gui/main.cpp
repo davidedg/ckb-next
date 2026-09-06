@@ -74,11 +74,18 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
                                          QObject::tr("Causes already running instance (if any) to exit."));
     parser.addOption(closeOption);
 
-    const QCommandLineOption switchToProfileOption(QStringList() << "p" << "profile", QObject::tr("Switches to the profile with the specified name on all devices."), "profile-name");
+    const QCommandLineOption switchToProfileOption(QStringList() << "p" << "profile", QObject::tr("Switches to the profile with the specified name on all devices, or only the device given by --device."), "profile-name");
     parser.addOption(switchToProfileOption);
 
-    const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile"), "mode-name");
+    const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile, on all devices, or only the device given by --device."), "mode-name");
     parser.addOption(switchToModeOption);
+
+    const QCommandLineOption deviceOption(QStringList() << "D" << "device", QObject::tr("Restricts --profile/--mode switching to the device with the given USB serial, "
+                                                                                         "leaving other devices untouched. Without this option, --profile/--mode affect "
+                                                                                         "all connected devices with a matching name. Connected devices and their serials "
+                                                                                         "are listed in the daemon's ckb0/connected file (under /dev/input on Linux, "
+                                                                                         "/var/run on macOS). Has no effect when combined with --sleep."), "device-serial");
+    parser.addOption(deviceOption);
 
     const QCommandLineOption sleepOption(QStringList() << "z" << "sleep", QObject::tr("Turns the lights off as if the system was idling."));
     parser.addOption(sleepOption);
@@ -154,6 +161,14 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
 
     if(parser.isSet(sleepOption)) {
         return CommandLineSleep;
+    }
+
+    // --device given without --profile/--mode: route into the same validation block as
+    // those two (they share one case body below), which reports the "-D needs -p/-m" error.
+    // Reusing CommandLineSwitchToProfile here is cosmetic - which of the two shared enum
+    // values is returned doesn't matter since both hit the same case.
+    if(parser.isSet(deviceOption)) {
+        return CommandLineSwitchToProfile;
     }
 
     /* no explicit argument was passed */
@@ -382,18 +397,35 @@ int main(int argc, char* argv[]){
     {
         QString profileName = parser.value("profile").left(30);
         QString modeName = parser.value("mode").left(30);
+        QString deviceSerial = parser.value("device").trimmed().toUpper();
+
+        if(parser.isSet("device") && deviceSerial.isEmpty()) {
+            fprintf(stderr, "Error: --device/-D value must not be empty.\n");
+            return 1;
+        }
 
         if(profileName.isEmpty() && modeName.isEmpty()) {
+            if(!deviceSerial.isEmpty()) {
+                fprintf(stderr, "Error: --device/-D must be used together with --profile/-p or --mode/-m.\n");
+                return 1;
+            }
             printf("No valid profile or mode specified.\n");
             return 0;
         }
 
+        // Prefixed onto SwitchToProfile:/SwitchToMode: lines, duplicated per line so each
+        // is self-contained (see MainWindow::timerTick()). Empty when --device wasn't
+        // given, reducing this to today's exact output in that case.
+        QString devicePrefix;
+        if(!deviceSerial.isEmpty())
+            devicePrefix = QString("Device: ").append(deviceSerial).append("\nOption ");
+
         QString switchStr;
 
         if(!profileName.isEmpty())
-            switchStr.append("SwitchToProfile: ").append(profileName).append("\nOption ");
+            switchStr.append(devicePrefix).append("SwitchToProfile: ").append(profileName).append("\nOption ");
         if(!modeName.isEmpty())
-            switchStr.append("SwitchToMode: ").append(modeName);
+            switchStr.append(devicePrefix).append("SwitchToMode: ").append(modeName);
 
         if (!isRunning(switchStr.toUtf8().constData()))
             printf("ckb-next is not running.\n");

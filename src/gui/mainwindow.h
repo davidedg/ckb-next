@@ -68,8 +68,8 @@ public slots:
     void checkForCkbUpdates();
 
 signals:
-    void switchToProfileCLI(QString profile);
-    void switchToModeCLI(QString mode);
+    void switchToProfileCLI(QString profile, QString serial);
+    void switchToModeCLI(QString mode, QString serial);
     void dimAllLightsForIdleCLI();
 
 private slots:

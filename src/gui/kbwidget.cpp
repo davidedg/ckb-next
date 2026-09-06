@@ -512,7 +512,10 @@ void KbWidget::on_layoutBox_activated(int index){
     device->layout(layout, true);
 }
 
-void KbWidget::switchToProfile(const QString& profile){
+void KbWidget::switchToProfile(const QString& profile, const QString& serial){
+    if(!serial.isEmpty() && device->usbSerial.compare(serial, Qt::CaseInsensitive) != 0)
+        return;
+
     int len = device->profiles().length();
     for(int i = 0; i < len; i++){
         KbProfile* loopProfile = device->profiles().at(i);
@@ -536,7 +539,10 @@ void KbWidget::showModeCountWarning(int loadedModes, int daemonModes){
            "for details.").arg(loadedModes).arg(daemonModes));
 }
 
-void KbWidget::switchToMode(const QString& mode){
+void KbWidget::switchToMode(const QString& mode, const QString& serial){
+    if(!serial.isEmpty() && device->usbSerial.compare(serial, Qt::CaseInsensitive) != 0)
+        return;
+
     KbProfile* currentProfile = device->currentProfile();
     int len = currentProfile->modes().length();
 
