@@ -175,8 +175,13 @@ int main(int argc, char** argv){
 #endif
                         "    --nonroot\n"
                         "        Allows running ckb-next-daemon as a non root user.\n"
-                        "        This will almost certainly not work. Use only if you know what you're doing.\n",
-                        CKB_NEXT_DESCRIPTION, devpath);
+                        "        This will almost certainly not work. Use only if you know what you're doing.\n"
+                        "    --modecount=<count>\n"
+                        "        Number of software mode slots to keep per device (default %d).\n"
+                        "        Raise this if your profiles have more modes than that; it's unrelated\n"
+                        "        to the (much lower) number of modes each device can actually store\n"
+                        "        onboard for hardware profiles.\n",
+                        CKB_NEXT_DESCRIPTION, devpath, MODE_COUNT_DEFAULT);
             return 0;
         } else if (!strcmp(argv[i], "--version")){
             printf("ckb-next-daemon %s\n", CKB_NEXT_VERSION_STR);
@@ -206,10 +211,21 @@ int main(int argc, char** argv){
         char* argument = argv[i];
         unsigned newgid;
         ushort vid, pid;
+        int newmodecount;
         if(sscanf(argument, "--gid=%u", &newgid) == 1){
             // Set dev node GID
             gid = newgid;
             ckb_info_nofile("Setting /dev node gid: %u", newgid);
+        } else if(sscanf(argument, "--modecount=%d", &newmodecount) == 1){
+            // Number of software mode slots per device. Must be able to hold at
+            // least as many modes as the largest hardware profile (K95: 3 modes).
+            int minmodecount = HWMODE_K95 > HWMODE_K70 ? HWMODE_K95 : HWMODE_K70;
+            if(newmodecount < minmodecount){
+                ckb_fatal_nofile("--modecount must be at least %d.", minmodecount);
+                return 1;
+            }
+            modeCount = newmodecount;
+            ckb_info_nofile("Setting mode count: %d", newmodecount);
         } else if(!strcmp(argument, "--nobind")){
             // Disable key notifications and rebinding
             features_mask &= ~FEAT_BIND & ~FEAT_NOTIFY;

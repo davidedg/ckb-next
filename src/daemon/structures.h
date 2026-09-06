@@ -120,10 +120,15 @@ typedef struct usbmode_ {
 
 // Native profile structure
 #define PR_NAME_LEN 16
-#define MODE_COUNT  6
+#define MODE_COUNT_DEFAULT  6
+// Number of software mode slots kept in the daemon's in-memory profile, for all
+// devices. Defaults to MODE_COUNT_DEFAULT; can be raised with --modecount=N.
+// Unrelated to the hardware mode limits (HWMODE_K70/HWMODE_K95 below), which
+// are fixed by the actual onboard flash capacity of each device.
+extern int modeCount;
 typedef struct {
     // Modes
-    usbmode mode[MODE_COUNT];
+    usbmode* mode;
     // Currently-selected mode
     usbmode* currentmode;
     // Last data sent to the device

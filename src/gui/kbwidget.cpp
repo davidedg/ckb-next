@@ -1,4 +1,5 @@
 #include <cmath>
+#include <QBrush>
 #include <QFileDialog>
 #include <QMenu>
 #include <QMessageBox>
@@ -24,11 +25,17 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector
     prevmode(nullptr)
 {
     ui->setupUi(this);
+    defaultProfileBoxPalette = ui->profileBox->palette();
     Q_ASSERT(ui->pollRateBox->count() == Kb::POLLRATE_COUNT);
     ui->modesList->setDevice(device);
     connect(device, &Kb::profileRenamed, this, &KbWidget::updateProfileList);
     connect(device, &Kb::profileAdded, this, &KbWidget::updateProfileList);
     connect(device, &Kb::modeChanged, this, &KbWidget::modeChanged);
+    connect(device, &Kb::modeCountExceeded, this, &KbWidget::showModeCountWarning);
+    connect(device, &Kb::modeCountStatusChanged, this, &KbWidget::updateProfileList);
+    // Also needed for the profileBox's own "current selection" color (see
+    // updateProfileList()): switching profiles doesn't otherwise touch it.
+    connect(device, &Kb::profileChanged, this, &KbWidget::updateProfileList);
     connect(device, &Kb::infoUpdated, this, &KbWidget::devUpdate);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
     connect(ui->batteryTrayBox, &QCheckBox::checkStateChanged, this, &KbWidget::batteryTrayBox_checkStateChanged);
@@ -197,6 +204,14 @@ void KbWidget::updateProfileList(){
     foreach(KbProfile* profile, device->profiles()){
         ui->profileBox->addItem((profile == hwProfile) ? QIcon(":/img/icon_profile_hardware.png") : QIcon(":/img/icon_profile.png"),
                                 profile->name());
+        if(profile->modeCount() > device->daemonModeCount){
+            // Flag profiles the daemon can't fully represent (too many modes for
+            // its configured --modecount), independently of whether the one-time
+            // warning popup already fired for this profile.
+            ui->profileBox->setItemData(i, QBrush(Qt::red), Qt::ForegroundRole);
+            ui->profileBox->setItemData(i, tr("This profile has %1 modes, but the daemon only supports %2.")
+                                        .arg(profile->modeCount()).arg(device->daemonModeCount), Qt::ToolTipRole);
+        }
         if(profile == currentProfile)
             ui->profileBox->setCurrentIndex(i);
         i++;
@@ -205,6 +220,19 @@ void KbWidget::updateProfileList(){
     QFont font = ui->profileBox->font();
     font.setItalic(true);
     ui->profileBox->setItemData(ui->profileBox->count() - 1, font, Qt::FontRole);
+
+    // The ForegroundRole set above only colors entries in the dropdown list, not
+    // the closed box's displayed text - that reads from the widget's own palette.
+    // Only touch ButtonText here: QPalette::Text is inherited by the dropdown's
+    // item view for any entry without its own ForegroundRole override, so setting
+    // it here would turn every profile red instead of just the closed-box text.
+    if(currentProfile && currentProfile->modeCount() > device->daemonModeCount){
+        QPalette pal = defaultProfileBoxPalette;
+        pal.setColor(QPalette::ButtonText, Qt::red);
+        ui->profileBox->setPalette(pal);
+    } else {
+        ui->profileBox->setPalette(defaultProfileBoxPalette);
+    }
 }
 
 void KbWidget::on_profileBox_activated(int index){
@@ -498,6 +526,14 @@ void KbWidget::switchToProfile(const QString& profile){
         ui->profileBox->setCurrentIndex(i);
         return;
     }
+}
+
+void KbWidget::showModeCountWarning(int loadedModes, int daemonModes){
+    QMessageBox::warning(this, tr("Too many modes"),
+        tr("This profile has %1 modes, but the running ckb-next-daemon only supports %2 mode slots.\n\n"
+           "The extra modes will not be synced to the daemon correctly. Restart ckb-next-daemon "
+           "with a higher --modecount value to support more modes; see the ckb-next documentation "
+           "for details.").arg(loadedModes).arg(daemonModes));
 }
 
 void KbWidget::switchToMode(const QString& mode){

@@ -42,6 +42,10 @@ public slots:
 private:
     Ui::KbWidget *ui;
     quint64 lastAutoSave;
+    // profileBox's palette before any "too many modes" color override, so it can
+    // be restored exactly (rather than reset to a generic default) once the
+    // selected profile is no longer over the limit.
+    QPalette defaultProfileBoxPalette;
 
     KbMode* currentMode;
 
@@ -66,6 +70,7 @@ private slots:
     void on_profileBox_activated(int index);
 
     void modeChanged();
+    void showModeCountWarning(int loadedModes, int daemonModes);
     void currentSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
     void on_modesList_customContextMenuRequested(const QPoint &pos);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)

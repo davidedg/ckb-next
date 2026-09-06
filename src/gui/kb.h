@@ -112,6 +112,12 @@ public:
     int hwModeCount;
     const static int HWMODE_MAX = 3;
 
+    // Number of software mode slots the connected daemon was configured with
+    // (--modecount, learned via `get :modecount` on connect). Assumed to be
+    // DAEMON_MODE_COUNT_DEFAULT until the real value is known.
+    int daemonModeCount;
+    const static int DAEMON_MODE_COUNT_DEFAULT = 6;
+
     // Perform a firmware update
     void fwUpdate(const QString& path);
 
@@ -200,6 +206,14 @@ signals:
     void profileAboutToChange();
     void modeChanged();
 
+    // Emitted when the current profile has more modes than the daemon has slots
+    // for (see daemonModeCount) - the extra modes can't be synced/animated correctly.
+    void modeCountExceeded(int loadedModes, int daemonModes);
+    // Emitted whenever something that affects whether a profile is over the
+    // daemon's mode limit changes: daemonModeCount itself, or the current
+    // profile's over/under status. Profile pickers should recheck their coloring.
+    void modeCountStatusChanged();
+
     // FW update status
     void fwUpdateProgress(int current, int total);
     void fwUpdateFinished(bool succeeded);
@@ -270,6 +284,12 @@ private:
     KbMode*     prevMode;
     // Used to write the profile info when switching
     void writeProfileHeader();
+    // Sends each mode's name to the daemon's in-memory profile
+    void pushModeNames();
+    // Emits modeCountExceeded() if the current profile has more modes than the
+    // daemon supports, at most once per profile instance while it stays over
+    KbProfile* modeCountWarnedProfile = nullptr;
+    void checkModeCountWarning();
 
     // cmd and notify file handles
     QFile cmd;

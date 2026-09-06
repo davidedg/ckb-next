@@ -5,6 +5,8 @@
 #include "profile.h"
 #include "stdint.h"
 
+int modeCount = MODE_COUNT_DEFAULT;
+
 // Percent-enconding conversions
 void urldecode2(char* dst, const char* src){
     char a, b;
@@ -200,7 +202,8 @@ void allocprofile(usbdevice* kb){
     if(kb->profile)
         return;
     usbprofile* profile = kb->profile = calloc(1, sizeof(usbprofile));
-    for(int i = 0; i < MODE_COUNT; i++)
+    profile->mode = calloc(modeCount, sizeof(usbmode));
+    for(int i = 0; i < modeCount; i++)
         initmode(profile->mode + i, kb);
     profile->currentmode = profile->mode;
     profile->lastlight.forceupdate = profile->lastdpi.forceupdate = 1;
@@ -233,8 +236,9 @@ static void _freeprofile(usbdevice* kb){
     if(!profile)
         return;
     // Clear all mode data
-    for(int i = 0; i < MODE_COUNT; i++)
+    for(int i = 0; i < modeCount; i++)
         freemode(profile->mode + i);
+    free(profile->mode);
     free(profile);
     kb->profile = 0;
 }
