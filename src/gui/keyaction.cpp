@@ -474,6 +474,31 @@ void KeyAction::keyEvent(KbBind* bind, const QString& key, bool down){
         env.insert(QLatin1String("CKBNEXT_ISERIAL"), kb->usbSerial);
         env.insert(QLatin1String("CKBNEXT_DEVPATH"), kb->devicePath());
         env.insert(QLatin1String("CKBNEXT_KEY"), key);
+        KbProfile* curProfile = kb->currentProfile();
+        KbMode* curMode = curProfile->currentMode();
+        const QList<KbProfile*>& profiles = kb->profiles();
+        int profileCount = profiles.count();
+        int profileIdx = kb->indexOf(curProfile);
+        int nextProfileIdx = (profileIdx + 1) % profileCount;
+        int prevProfileIdx = (profileIdx - 1 + profileCount) % profileCount;
+        int modeCount = curProfile->modeCount();
+        int modeIdx = curProfile->indexOf(curMode);
+        int nextModeIdx = (modeIdx + 1) % modeCount;
+        int prevModeIdx = (modeIdx - 1 + modeCount) % modeCount;
+        env.insert(QLatin1String("CKBNEXT_PROFILE"), QString::number(profileIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_PROFILENAME"), curProfile->name());
+        env.insert(QLatin1String("CKBNEXT_PROFILES"), QString::number(profileCount));
+        env.insert(QLatin1String("CKBNEXT_PROFILE_NEXT"), QString::number(nextProfileIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_PROFILENAME_NEXT"), profiles.at(nextProfileIdx)->name());
+        env.insert(QLatin1String("CKBNEXT_PROFILE_PREV"), QString::number(prevProfileIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_PROFILENAME_PREV"), profiles.at(prevProfileIdx)->name());
+        env.insert(QLatin1String("CKBNEXT_MODE"), QString::number(modeIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_MODENAME"), curMode->name());
+        env.insert(QLatin1String("CKBNEXT_MODES"), QString::number(modeCount));
+        env.insert(QLatin1String("CKBNEXT_MODE_NEXT"), QString::number(nextModeIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_MODENAME_NEXT"), curProfile->at(nextModeIdx)->name());
+        env.insert(QLatin1String("CKBNEXT_MODE_PREV"), QString::number(prevModeIdx + 1));
+        env.insert(QLatin1String("CKBNEXT_MODENAME_PREV"), curProfile->at(prevModeIdx)->name());
 #endif
 
         // Start the program. Wrap it around sh to parse arguments.
