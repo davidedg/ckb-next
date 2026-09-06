@@ -374,6 +374,10 @@ void MainWindow::timerTick(){
         snprintf((char*)appShare.data(), appShare.size(), "PID %ld", (long)getpid());
         appShare.unlock();
         // Parse commands
+        // Set by a "Device: <serial>" line; scopes the SwitchToProfile/SwitchToMode line
+        // that immediately follows it, then is cleared - so it never bleeds into an
+        // unrelated switch command from a different, unscoped CLI invocation.
+        QString pendingDeviceSerial;
         foreach(const QString& line, commands){
             // Old ckb option line - bring application to foreground
             if(line == "Open")
@@ -387,10 +391,16 @@ void MainWindow::timerTick(){
                 else if(option == "Close")
                     // Quit application
                     qApp->quit();
-                else if(option.startsWith("SwitchToProfile"))
-                    emit switchToProfileCLI(option.section(' ', 1));
-                else if(option.startsWith("SwitchToMode: "))
-                    emit switchToModeCLI(option.section(' ', 1));
+                else if(option.startsWith("Device: "))
+                    pendingDeviceSerial = option.section(' ', 1).trimmed().toUpper();
+                else if(option.startsWith("SwitchToProfile")){
+                    emit switchToProfileCLI(option.section(' ', 1), pendingDeviceSerial);
+                    pendingDeviceSerial.clear();
+                }
+                else if(option.startsWith("SwitchToMode: ")){
+                    emit switchToModeCLI(option.section(' ', 1), pendingDeviceSerial);
+                    pendingDeviceSerial.clear();
+                }
                 else if(option == QLatin1String("Sleep"))
                     emit dimAllLightsForIdleCLI();
             }
