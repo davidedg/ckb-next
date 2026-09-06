@@ -21,3 +21,5 @@ ckb-dev-detect-report.gz
 ckb-next-dev-detect-report.gz
 macos/pkgproj/build
 compile_commands.json
+CLAUDE.md
+GITIGNORE/
