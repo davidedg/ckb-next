@@ -188,7 +188,7 @@ int readcmd(usbdevice* kb, char* line){
         case MODE: {
             // Select a mode number (1 - 6)
             int newmode;
-            if(sscanf(word, "%d", &newmode) == 1 && newmode > 0 && newmode <= MODE_COUNT)
+            if(sscanf(word, "%d", &newmode) == 1 && newmode > 0 && newmode <= modeCount)
                 mode = profile->mode + newmode - 1;
             continue;
         }

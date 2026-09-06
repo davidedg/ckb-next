@@ -101,6 +101,10 @@ static void _cmd_get(usbdevice* kb, usbmode* mode, int nnumber, const char* sett
         // Get the current mode number
         nprintf(kb, nnumber, mode, "switch\n");
         return;
+    } else if(!strcmp(setting, ":modecount")){
+        // Get the number of software mode slots configured for this daemon instance
+        nprintf(kb, nnumber, 0, "modecount %d\n", modeCount);
+        return;
     } else if(!strcmp(setting, ":rgb")){
         // Get the current RGB settings
         char* rgb = printrgb(&mode->light, kb);

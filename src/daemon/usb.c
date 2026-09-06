@@ -521,7 +521,7 @@ static void* _setupusb(void* context){
     /// - Via an entry in the vable (allocprofile, identical for all three vtable types),
     /// allocprofile() is called in profile.c.
     /// With a valid parameter kb, a usbprofile structure is allocated and stored as a kb->profile.
-    /// Then initmode() is called for each of the initializable modes (MODE_COUNT, currently 6).
+    /// Then initmode() is called for each of the initializable modes (modeCount, MODE_COUNT_DEFAULT by default).
     /// This procedure creates the memory space for the mode information,
     /// initializes the range to 0, and then sets the light.forceupdate and dpi.forceupdate to true.
     /// This forces an update later in the initialization of the device.
