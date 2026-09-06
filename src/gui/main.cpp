@@ -80,11 +80,8 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
     const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile, on all devices, or only the device given by --device."), "mode-name");
     parser.addOption(switchToModeOption);
 
-    const QCommandLineOption deviceOption(QStringList() << "D" << "device", QObject::tr("Restricts --profile/--mode switching to the device with the given USB serial, "
-                                                                                         "leaving other devices untouched. Without this option, --profile/--mode affect "
-                                                                                         "all connected devices with a matching name. Connected devices and their serials "
-                                                                                         "are listed in the daemon's ckb0/connected file (under /dev/input on Linux, "
-                                                                                         "/var/run on macOS). Has no effect when combined with --sleep."), "device-serial");
+    const QCommandLineOption deviceOption(QStringList() << "D" << "device",
+                                         QObject::tr("Restricts --profile/--mode switching to the device with the given USB serial."), "device-serial");
     parser.addOption(deviceOption);
 
     const QCommandLineOption sleepOption(QStringList() << "z" << "sleep", QObject::tr("Turns the lights off as if the system was idling."));
