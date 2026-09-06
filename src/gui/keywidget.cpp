@@ -24,9 +24,9 @@ static const QColor animColor(112, 200, 110);
 static const QColor highlightColor(136, 176, 240);
 static const QBrush bgHighlightBrush(QColor(136, 176, 240, 128));
 static const QColor red(255, 136, 136);
-static const QColor orange(255, 224, 192);
-static const QColor blue(128, 224, 255);
-static const QColor green(160, 255, 168);
+static const QColor orange(199, 166, 133);
+static const QColor blue(65, 166, 199);
+static const QColor green(99, 199, 107);
 static const QColor white(255, 255, 255);
 static const QColor yellow(255, 248, 128);
 
