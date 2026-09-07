@@ -9,6 +9,7 @@ cmake-build*/
 .*
 !.gitignore
 !.github
+!aur/.SRCINFO
 *.o
 *.pro.*
 Makefile

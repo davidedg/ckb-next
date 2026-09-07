@@ -1,0 +1,27 @@
+pkgbase = ckb-next-ddg
+	pkgdesc = Corsair Keyboard and Mouse RGB Driver — ddg fork (device-scoped profile/mode CLI, WITH_ENV_VARS)
+	pkgver = 0.6.2.ddg.1
+	pkgrel = 1
+	url = https://github.com/davidedg/ckb-next
+	arch = x86_64
+	license = GPL-2.0-only
+	makedepends = cmake
+	makedepends = qt6-tools
+	makedepends = git
+	depends = qt6-base
+	depends = hicolor-icon-theme
+	depends = quazip-qt6
+	depends = libxcb
+	depends = xcb-util-wm
+	depends = systemd-libs
+	depends = bash
+	depends = glibc
+	depends = libpulse
+	depends = libgcc
+	depends = libstdc++
+	provides = ckb-next=0.6.2
+	conflicts = ckb-next
+	source = ckb-next-ddg::git+https://github.com/davidedg/ckb-next.git#tag=v0.6.2.ddg.1
+	sha256sums = SKIP
+
+pkgname = ckb-next-ddg
