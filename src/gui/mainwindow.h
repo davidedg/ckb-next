@@ -69,7 +69,9 @@ public slots:
 
 signals:
     void switchToProfileCLI(QString profile, QString serial);
+    void switchToProfileAtCLI(QString selector, QString serial);
     void switchToModeCLI(QString mode, QString serial);
+    void switchToModeAtCLI(QString selector, QString serial);
     void dimAllLightsForIdleCLI();
 
 private slots:

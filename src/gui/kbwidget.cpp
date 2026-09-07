@@ -43,7 +43,9 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device, XWindowDetector* windowDetector
     connect(ui->batteryTrayBox, &QCheckBox::stateChanged, this, &KbWidget::batteryTrayBox_stateChanged);
 #endif
     connect(MainWindow::mainWindow, &MainWindow::switchToProfileCLI, this, &KbWidget::switchToProfile);
+    connect(MainWindow::mainWindow, &MainWindow::switchToProfileAtCLI, this, &KbWidget::switchToProfileAt);
     connect(MainWindow::mainWindow, &MainWindow::switchToModeCLI, this, &KbWidget::switchToMode);
+    connect(MainWindow::mainWindow, &MainWindow::switchToModeAtCLI, this, &KbWidget::switchToModeAt);
     connect(ui->modesList->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &KbWidget::currentSelectionChanged);
 
 #ifdef USE_XCB_EWMH
@@ -531,6 +533,49 @@ void KbWidget::switchToProfile(const QString& profile, const QString& serial){
     }
 }
 
+// Resolves a --profile-select/--mode-select CLI selector ("next"/"prev"/"first"/"last",
+// already lowercased and grammar-checked by main.cpp before it reached the wire, or a
+// positive 1-based integer index) against the current 0-based index and item count.
+// Returns the target 0-based index, or -1 for a no-op (out-of-range absolute index; count==0
+// guards only against %0 UB, see note below).
+static int resolveSelectorIndex(const QString& selector, int currentIndex, int count){
+    if(count <= 0)
+        return -1;
+
+    if(selector == QLatin1String("first"))
+        return 0;
+    if(selector == QLatin1String("last"))
+        return count - 1;
+    if(selector == QLatin1String("next"))
+        return (currentIndex + 1) % count;
+    if(selector == QLatin1String("prev"))
+        return (currentIndex - 1 + count) % count;
+
+    bool ok;
+    int idx = selector.toInt(&ok); // 1-based
+    if(!ok || idx < 1 || idx > count)
+        return -1;
+    return idx - 1;
+}
+
+void KbWidget::switchToProfileAt(const QString& selector, const QString& serial){
+    if(!serial.isEmpty() && device->usbSerial.compare(serial, Qt::CaseInsensitive) != 0)
+        return;
+
+    int count = device->profiles().length();
+    int current = device->indexOf(device->currentProfile());
+    int target = resolveSelectorIndex(selector, current, count);
+    if(target < 0)
+        return;
+
+    KbProfile* targetProfile = device->profiles().at(target);
+    qDebug() << "Switching" << this->name() << "to" << targetProfile->name();
+    device->setCurrentProfile(targetProfile);
+
+    // Also update the dropdown
+    ui->profileBox->setCurrentIndex(target);
+}
+
 void KbWidget::showModeCountWarning(int loadedModes, int daemonModes){
     QMessageBox::warning(this, tr("Too many modes"),
         tr("This profile has %1 modes, but the running ckb-next-daemon only supports %2 mode slots.\n\n"
@@ -556,6 +601,22 @@ void KbWidget::switchToMode(const QString& mode, const QString& serial){
 
         return;
     }
+}
+
+void KbWidget::switchToModeAt(const QString& selector, const QString& serial){
+    if(!serial.isEmpty() && device->usbSerial.compare(serial, Qt::CaseInsensitive) != 0)
+        return;
+
+    KbProfile* currentProfile = device->currentProfile();
+    int count = currentProfile->modes().length();
+    int current = currentProfile->indexOf(currentProfile->currentMode());
+    int target = resolveSelectorIndex(selector, current, count);
+    if(target < 0)
+        return;
+
+    KbMode* targetMode = currentProfile->modes().at(target);
+    qDebug() << "Switching" << this->name() << "to mode" << targetMode->name() << "in" << currentProfile->name();
+    device->setCurrentMode(targetMode);
 }
 
 void KbWidget::on_pollRateBox_currentIndexChanged(int arg1) {

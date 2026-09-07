@@ -393,7 +393,15 @@ void MainWindow::timerTick(){
                     qApp->quit();
                 else if(option.startsWith("Device: "))
                     pendingDeviceSerial = option.section(' ', 1).trimmed().toUpper();
-                else if(option.startsWith("SwitchToProfile")){
+                else if(option.startsWith("SwitchToProfileAt: ")){
+                    emit switchToProfileAtCLI(option.section(' ', 1), pendingDeviceSerial);
+                    pendingDeviceSerial.clear();
+                }
+                else if(option.startsWith("SwitchToModeAt: ")){
+                    emit switchToModeAtCLI(option.section(' ', 1), pendingDeviceSerial);
+                    pendingDeviceSerial.clear();
+                }
+                else if(option.startsWith("SwitchToProfile: ")){
                     emit switchToProfileCLI(option.section(' ', 1), pendingDeviceSerial);
                     pendingDeviceSerial.clear();
                 }
