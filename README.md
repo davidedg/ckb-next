@@ -8,6 +8,21 @@
 
 ![Screenshot](https://i.imgur.com/zMK9jOP.png)
 
+Additional features of this fork [davidedg/ckb-next](https://github.com/davidedg/ckb-next):
+
+<sup>  **_NOTE:_** This code is AI-assisted and the upstream developers have a strict no-AI policy, hence the separate fork.</sup>
+
+- Command-line switching of profiles/modes by name or by relative/absolute
+  position (`-p`/`-m`, `-P`/`-M`), optionally scoped to one device (`-D`)
+- Environment variables (`CKBNEXT_*`) exposed to programs launched from
+  "Launch Program" key bindings, identifying the triggering device/key and
+  the active/next/previous profile and mode (opt-in `WITH_ENV_VARS` build flag)
+- Daemon-side fix for profiles with more modes than hardware mode slots:
+  configurable mode-slot count (`--modecount`), correct mode-name sync to the
+  daemon, and a GUI warning/indicator for over-limit profiles
+
+
+\
 Major features:
 
 - Control multiple devices independently
