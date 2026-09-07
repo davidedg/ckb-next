@@ -77,11 +77,19 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
     const QCommandLineOption switchToProfileOption(QStringList() << "p" << "profile", QObject::tr("Switches to the profile with the specified name on all devices, or only the device given by --device."), "profile-name");
     parser.addOption(switchToProfileOption);
 
-    const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile, on all devices, or only the device given by --device."), "mode-name");
+    const QCommandLineOption switchToProfileSelectOption(QStringList() << "P" << "profile-select",
+                                         QObject::tr("Switches to the profile at the given relative or absolute position (next/prev/first/last, case-insensitive, or a positive 1-based index) on all devices, or only the device given by --device. Cannot be combined with --profile/-p."), "profile-selector");
+    parser.addOption(switchToProfileSelectOption);
+
+    const QCommandLineOption switchToModeOption(QStringList() << "m" << "mode", QObject::tr("Switches to the mode either in the current profile, or in the one specified by --profile or --profile-select, on all devices, or only the device given by --device."), "mode-name");
     parser.addOption(switchToModeOption);
 
+    const QCommandLineOption switchToModeSelectOption(QStringList() << "M" << "mode-select",
+                                         QObject::tr("Switches to the mode at the given relative or absolute position (next/prev/first/last, case-insensitive, or a positive 1-based index) within the current/target profile, on all devices, or only the device given by --device. Cannot be combined with --mode/-m."), "mode-selector");
+    parser.addOption(switchToModeSelectOption);
+
     const QCommandLineOption deviceOption(QStringList() << "D" << "device",
-                                         QObject::tr("Restricts --profile/--mode switching to the device with the given USB serial."), "device-serial");
+                                         QObject::tr("Restricts --profile/--mode/--profile-select/--mode-select switching to the device with the given USB serial."), "device-serial");
     parser.addOption(deviceOption);
 
     const QCommandLineOption sleepOption(QStringList() << "z" << "sleep", QObject::tr("Turns the lights off as if the system was idling."));
@@ -152,7 +160,15 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
         return CommandLineSwitchToProfile;
     }
 
+    if(parser.isSet(switchToProfileSelectOption)) {
+        return CommandLineSwitchToProfile;
+    }
+
     if(parser.isSet(switchToModeOption)) {
+        return CommandLineSwitchToMode;
+    }
+
+    if(parser.isSet(switchToModeSelectOption)) {
         return CommandLineSwitchToMode;
     }
 
@@ -160,10 +176,10 @@ CommandLineParseResults parseCommandLine(QCommandLineParser &parser, QString *er
         return CommandLineSleep;
     }
 
-    // --device given without --profile/--mode: route into the same validation block as
-    // those two (they share one case body below), which reports the "-D needs -p/-m" error.
-    // Reusing CommandLineSwitchToProfile here is cosmetic - which of the two shared enum
-    // values is returned doesn't matter since both hit the same case.
+    // --device given without --profile/--mode/--profile-select/--mode-select: route into the
+    // same validation block as those four (they share one case body below), which reports the
+    // "-D needs -p/-m/-P/-M" error. Reusing CommandLineSwitchToProfile here is cosmetic - which
+    // of the two shared enum values is returned doesn't matter since both hit the same case.
     if(parser.isSet(deviceOption)) {
         return CommandLineSwitchToProfile;
     }
@@ -392,8 +408,19 @@ int main(int argc, char* argv[]){
     case CommandLineSwitchToMode:
     case CommandLineSwitchToProfile:
     {
+        if(parser.isSet("profile") && parser.isSet("profile-select")) {
+            fprintf(stderr, "Error: --profile/-p and --profile-select/-P cannot be used together.\n");
+            return 1;
+        }
+        if(parser.isSet("mode") && parser.isSet("mode-select")) {
+            fprintf(stderr, "Error: --mode/-m and --mode-select/-M cannot be used together.\n");
+            return 1;
+        }
+
         QString profileName = parser.value("profile").left(30);
         QString modeName = parser.value("mode").left(30);
+        QString profileSelector = parser.value("profile-select").trimmed().toLower();
+        QString modeSelector = parser.value("mode-select").trimmed().toLower();
         QString deviceSerial = parser.value("device").trimmed().toUpper();
 
         if(parser.isSet("device") && deviceSerial.isEmpty()) {
@@ -401,17 +428,38 @@ int main(int argc, char* argv[]){
             return 1;
         }
 
-        if(profileName.isEmpty() && modeName.isEmpty()) {
+        // Grammar: "next"/"prev"/"first"/"last" (already lowercased above) or a positive
+        // 1-based integer. Numeric strings are case-agnostic so toLower() above is harmless
+        // to them; this mirrors -D's normalize-then-compare style (trimmed().toUpper() there).
+        auto isValidSelector = [](const QString& s) -> bool {
+            if(s == QLatin1String("next") || s == QLatin1String("prev")
+               || s == QLatin1String("first") || s == QLatin1String("last"))
+                return true;
+            bool ok;
+            int idx = s.toInt(&ok);
+            return ok && idx >= 1;
+        };
+
+        if(parser.isSet("profile-select") && !isValidSelector(profileSelector)) {
+            fprintf(stderr, "Error: --profile-select/-P value must be 'next', 'prev', 'first', 'last', or a positive integer index.\n");
+            return 1;
+        }
+        if(parser.isSet("mode-select") && !isValidSelector(modeSelector)) {
+            fprintf(stderr, "Error: --mode-select/-M value must be 'next', 'prev', 'first', 'last', or a positive integer index.\n");
+            return 1;
+        }
+
+        if(profileName.isEmpty() && modeName.isEmpty() && profileSelector.isEmpty() && modeSelector.isEmpty()) {
             if(!deviceSerial.isEmpty()) {
-                fprintf(stderr, "Error: --device/-D must be used together with --profile/-p or --mode/-m.\n");
+                fprintf(stderr, "Error: --device/-D must be used together with --profile/-p, --mode/-m, --profile-select/-P, or --mode-select/-M.\n");
                 return 1;
             }
             printf("No valid profile or mode specified.\n");
             return 0;
         }
 
-        // Prefixed onto SwitchToProfile:/SwitchToMode: lines, duplicated per line so each
-        // is self-contained (see MainWindow::timerTick()). Empty when --device wasn't
+        // Prefixed onto SwitchToProfile[At]:/SwitchToMode[At]: lines, duplicated per line so
+        // each is self-contained (see MainWindow::timerTick()). Empty when --device wasn't
         // given, reducing this to today's exact output in that case.
         QString devicePrefix;
         if(!deviceSerial.isEmpty())
@@ -421,8 +469,13 @@ int main(int argc, char* argv[]){
 
         if(!profileName.isEmpty())
             switchStr.append(devicePrefix).append("SwitchToProfile: ").append(profileName).append("\nOption ");
+        else if(!profileSelector.isEmpty())
+            switchStr.append(devicePrefix).append("SwitchToProfileAt: ").append(profileSelector).append("\nOption ");
+
         if(!modeName.isEmpty())
             switchStr.append(devicePrefix).append("SwitchToMode: ").append(modeName);
+        else if(!modeSelector.isEmpty())
+            switchStr.append(devicePrefix).append("SwitchToModeAt: ").append(modeSelector);
 
         if (!isRunning(switchStr.toUtf8().constData()))
             printf("ckb-next is not running.\n");

@@ -86,7 +86,9 @@ private slots:
     void on_fwUpdButton_clicked();
     void on_layoutBox_activated(int index);
     void switchToProfile(const QString& profile, const QString& serial);
+    void switchToProfileAt(const QString& selector, const QString& serial);
     void switchToMode(const QString& mode, const QString& serial);
+    void switchToModeAt(const QString& selector, const QString& serial);
     void on_pollRateBox_currentIndexChanged(int arg1);
     void switchToModeByFocus(XWindowInfo win);
     void on_modesList_doubleClicked(const QModelIndex& index);
