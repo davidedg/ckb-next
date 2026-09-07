@@ -1,0 +1,56 @@
+# Maintainer: Davide Del Grande (ddg) <AUR-username>
+# Fork of the official Arch ckb-next package by Giovanni Harting <anonfunc@archlinux.org>
+# Upstream: https://github.com/ckb-next/ckb-next
+# Fork:     https://github.com/davidedg/ckb-next
+
+pkgname=ckb-next-ddg
+pkgver=0.6.2.ddg.1
+pkgrel=1
+pkgdesc="Corsair Keyboard and Mouse RGB Driver — ddg fork (device-scoped profile/mode CLI, WITH_ENV_VARS)"
+arch=('x86_64')
+url='https://github.com/davidedg/ckb-next'
+license=('GPL-2.0-only')
+provides=("ckb-next=${pkgver%%.ddg.*}")
+conflicts=('ckb-next')
+depends=(
+  qt6-base
+  hicolor-icon-theme
+  quazip-qt6
+  libxcb
+  xcb-util-wm
+  systemd-libs
+  bash
+  glibc
+  libpulse
+  libgcc
+  libstdc++
+)
+makedepends=('cmake' 'qt6-tools' 'git')
+# git+ source (not a tarball): needs the real tag history so `git describe
+# --tags` resolves to "0.6.2.ddg.1" inside the build instead of falling back
+# to "-unknown" (see CkbNextDetermineVersion.cmake).
+source=("$pkgname::git+https://github.com/davidedg/ckb-next.git#tag=v$pkgver")
+sha256sums=('SKIP')
+
+build() {
+  local cmake_options=(
+    -B build
+    -S "$pkgname"
+    -D CMAKE_INSTALL_PREFIX=/usr
+    -D CMAKE_INSTALL_LIBDIR=lib
+    -D CMAKE_INSTALL_LIBEXECDIR=lib
+    -D DISABLE_UPDATER=1
+    -D UDEV_RULE_DIRECTORY=/usr/lib/udev/rules.d
+    -D FORCE_INIT_SYSTEM=systemd
+    -D PREFER_QT6=on
+    -D WITH_ENV_VARS=ON
+  )
+  cmake "${cmake_options[@]}"
+  cmake --build build
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+}
+
+# vim:set ts=2 sw=2 et:

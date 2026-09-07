@@ -1,0 +1,66 @@
+name: Publish to AUR
+
+on:
+  push:
+    tags:
+      - 'v*.ddg.*'
+
+permissions:
+  contents: write
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Derive pkgver from tag
+        id: ver
+        run: echo "pkgver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump pkgver/pkgrel in aur/PKGBUILD
+        run: |
+          sed -i "s/^pkgver=.*/pkgver=${{ steps.ver.outputs.pkgver }}/" aur/PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" aur/PKGBUILD
+
+      - name: Regenerate .SRCINFO (archlinux container)
+        run: |
+          docker run --rm -v "$PWD/aur:/pkg" -w /pkg archlinux:base-devel bash -c '
+            useradd -m builder && chown -R builder /pkg &&
+            su builder -c "makepkg --printsrcinfo > .SRCINFO"
+          '
+
+      - name: Set up SSH for AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
+          printf 'Host aur.archlinux.org\n  IdentityFile ~/.ssh/aur_key\n  IdentitiesOnly yes\n  User aur\n' >> ~/.ssh/config
+
+      - name: Push PKGBUILD + .SRCINFO to AUR
+        run: |
+          git clone ssh://aur@aur.archlinux.org/ckb-next-ddg.git /tmp/aur-repo
+          cd /tmp/aur-repo
+          git checkout -B master origin/master
+          cp "$GITHUB_WORKSPACE"/aur/PKGBUILD "$GITHUB_WORKSPACE"/aur/.SRCINFO .
+          git config user.name "davidedg"
+          git config user.email "delgrande.davide+archaur@gmail.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet && echo "AUR already up to date" && exit 0
+          git commit -m "Update to ${{ steps.ver.outputs.pkgver }}"
+          git push origin HEAD:refs/heads/master
+
+      - name: Sync updated PKGBUILD + .SRCINFO to master
+        run: |
+          git config user.name "davidedg"
+          git config user.email "delgrande.davide+archaur@gmail.com"
+          git add aur/PKGBUILD aur/.SRCINFO
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: sync aur/ to ${{ steps.ver.outputs.pkgver }} [skip ci]"
+          git push origin HEAD:master
