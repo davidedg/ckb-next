@@ -29,6 +29,10 @@ if (WITH_MVIZ) # otherwise doesn't make sense to include
     add_subdirectory(kissfft)
 endif ()
 
+if (WITH_HWSENSOR)
+    add_subdirectory(cjson)
+endif ()
+
 # ckb-next libraries
 add_subdirectory(ckb-next)
 add_subdirectory(uthash)

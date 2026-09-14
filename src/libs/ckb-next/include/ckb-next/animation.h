@@ -80,6 +80,12 @@
 #define CKB_PARAM_AGRADIENT(name, prefix, postfix, default)         CKB_PARAM("agradient", name, prefix, postfix, printurl(default))
 #define CKB_PARAM_ANGLE(name, prefix, postfix, default)             CKB_PARAM("angle", name, prefix, postfix, printf("%ld", (long)(default)))
 #define CKB_PARAM_STRING(name, prefix, postfix, default)            CKB_PARAM("string", name, prefix, postfix, printurl(default))
+// A "list" param is a dropdown of choices. CKB_PARAM_LIST declares the param itself (default is
+// the id of the initially-selected choice); it MUST be followed immediately by one CKB_LISTITEM
+// call per choice, before any other CKB_PARAM_*/CKB_PARAM_LIST call. The value ckb_parameter()
+// receives for a list param is always the chosen item's id, never its label.
+#define CKB_PARAM_LIST(name, prefix, postfix, default)              CKB_PARAM("list", name, prefix, postfix, printurl(default))
+#define CKB_LISTITEM(name, id, label)                               CKB_CONTAINER( printf("listitem %s ", name); printurl(id); printf("="); printurl(label); printf("\n"); )
 #define CKB_PARAM_LABEL(name, text)                                 CKB_PARAM("label", name, text, "", )
 
 #define CKB_PRESET_START(name)                                      CKB_CONTAINER( printf("preset "); printurl(name); )
@@ -121,6 +127,7 @@
 #define CKB_PARSE_AGRADIENT(param_name, gradient_ptr)               if(!strcmp(name, param_name) && ckb_scan_grad(value, gradient_ptr, 1))
 #define CKB_PARSE_ANGLE(param_name, value_ptr)                      if(!strcmp(name, param_name) && sscanf(value, "%ld", value_ptr) == 1)
 #define CKB_PARSE_STRING(param_name)                                if(!strcmp(name, param_name))
+#define CKB_PARSE_LIST(param_name)                                  if(!strcmp(name, param_name))
 
 // Converts an angle from ckb output to the correct angle for math functions.
 // Input: [0, 359], positive direction CW. Output: [0, 2π), positive direction CCW.

@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QObject>
 #include <QMap>
+#include <QPair>
 #include <QProcess>
 #include <QUuid>
 #include <QVariant>
@@ -31,7 +32,8 @@ public:
             AGRADIENT,
             ANGLE,
             STRING,
-            LABEL
+            LABEL,
+            LIST
         };
         Type        type;
         // Internal name
@@ -44,6 +46,8 @@ public:
         // Minimum and maximum values (apply to int and double)
         QVariant    minimum;
         QVariant    maximum;
+        // Selectable {id, label} pairs (LIST only), in declaration order
+        QList<QPair<QString, QString>> options;
     };
 
     // Global animation path
@@ -71,7 +75,7 @@ public:
 
     // Parameters, in the order they were given
     inline QListIterator<Param> paramIterator() const               { return _info.params; }
-    inline Param                param(const QString& name) const    { QListIterator<Param> i(_info.params); while(i.hasNext()){ Param p = i.next(); if(p.name == name) return p; } return ((Param[]){ { Param::INVALID, "", "", "", 0, 0, 0 } })[0]; }
+    inline Param                param(const QString& name) const    { QListIterator<Param> i(_info.params); while(i.hasNext()){ Param p = i.next(); if(p.name == name) return p; } return ((Param[]){ { Param::INVALID, "", "", "", 0, 0, 0, {} } })[0]; }
     inline bool                 hasParam(const QString& name) const { QListIterator<Param> i(_info.params); while(i.hasNext()){ if(i.next().name == name) return true; } return false; }
 
     // Creates a usable script object with the given parent object. Returns null if no such script exists.

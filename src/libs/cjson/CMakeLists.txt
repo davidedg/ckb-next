@@ -3,7 +3,7 @@
 #
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions are met:
-#   
+#
 #   1. Redistributions of source code must retain the above copyright notice,
 #   this list of conditions and the following disclaimer.
 #   2. Redistributions in binary form must reproduce the above copyright
@@ -11,8 +11,8 @@
 #   documentation and/or other materials provided with the distribution.
 #   3. Neither the name of the copyright holder nor the names of its
 #   contributors may be used to endorse or promote products derived from this
-#   software without specific prior written permission. 
-#   
+#   software without specific prior written permission.
+#
 #   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 #   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 #   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -24,55 +24,30 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
+#   See LICENSE (in this directory) regarding the distribution of cJSON
+#   itself, not this file. Vendored verbatim from
+#   https://github.com/DaveGamble/cJSON, tag v1.7.19.
 
-# No need to check for WITH_ANIMATIONS, because all the options below
-# already depend on it through cmake_dependent_option()
+project(cJSON LANGUAGES C VERSION 1.7.19)
 
-add_custom_target(animations)
+add_library(cJSON STATIC cJSON.c)
+add_library(cJSON::cJSON ALIAS cJSON)
 
-foreach (animation IN ITEMS GRADIENT HEAT PINWHEEL RAIN RANDOM RIPPLE WAVE INVADERS LIFE SNAKE PIPE PLASMA)
-  if (WITH_${animation})
-    string(TOLOWER ${animation} animation)
-    add_executable(${animation} ${animation}/main.c)
-    add_dependencies(animations ${animation})
+target_include_directories(
+    cJSON
+        PUBLIC
+          "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    target_link_libraries(
-      ${animation}
-        PRIVATE
-          m
-          ${CMAKE_PROJECT_NAME}::UtHash
-          ${CMAKE_PROJECT_NAME}::Animation)
-
-    set_target_properties(
-      ${animation}
+set_target_properties(
+    cJSON
         PROPERTIES
           C_STANDARD 11)
 
-    target_compile_options(
-      ${animation}
-        PRIVATE
-          "${CKB_NEXT_COMMON_COMPILE_FLAGS}"
-          "${CKB_NEXT_EXTRA_C_FLAGS}")
+target_compile_options(
+    cJSON
+      PRIVATE
+        "${CKB_NEXT_COMMON_COMPILE_FLAGS}"
+        "${CKB_NEXT_EXTRA_C_FLAGS}")
 
-    add_sanitizers(${animation})
-
-    install(
-      TARGETS ${animation}
-      DESTINATION "${INSTALL_DIR_ANIMATIONS}")
-  endif ()
-endforeach ()
-
-if (WITH_MVIZ)
-  add_subdirectory(mviz)
-  if (TARGET mviz)
-    add_dependencies(animations mviz)
-  endif ()
-endif ()
-
-if (WITH_HWSENSOR)
-  add_subdirectory(hwsensor)
-  if (TARGET hwsensor)
-    add_dependencies(animations hwsensor)
-  endif ()
-endif ()
-
+add_sanitizers(cJSON)

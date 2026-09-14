@@ -163,6 +163,32 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
                 emit updateParam(param.name);
             });
             break;
+        case AnimScript::Param::LIST:{
+            QComboBox* combo = new QComboBox(this);
+            QString current = value.toString();
+            bool found = current.isEmpty();
+            if(found)
+                combo->addItem(tr("(none selected)"), QString());
+            for(const auto& option : param.options){
+                combo->addItem(option.second, option.first);
+                if(option.first == current)
+                    found = true;
+            }
+            if(!found)
+                // Previously-selected id is no longer among the discovered choices (e.g. the
+                // hardware isn't connected right now) -- keep it visible and selected instead of
+                // silently switching to something else, so it isn't lost on the next save.
+                combo->addItem(tr("(unavailable) %1").arg(current), current);
+            int idx = combo->findData(current);
+            if(idx >= 0)
+                combo->setCurrentIndex(idx);
+            widget = combo;
+            colSpan = 3;
+            connect(combo, OVERLOAD_PTR(int, QComboBox, activated), [=] () {
+                emit updateParam(param.name);
+            });
+            break;
+        }
         case AnimScript::Param::LABEL:
             widget = new QLabel(this);
             ((QLabel*)widget)->setText(param.prefix);
@@ -495,6 +521,11 @@ void AnimSettingDialog::updateParam(const QString& name){
     case AnimScript::Param::STRING:{
         QLineEdit* widget = (QLineEdit*)settingWidgets[name];
         _anim->parameter(name, widget->text());
+        break;
+    }
+    case AnimScript::Param::LIST:{
+        QComboBox* widget = (QComboBox*)settingWidgets[name];
+        _anim->parameter(name, widget->currentData().toString());
         break;
     }
     default:

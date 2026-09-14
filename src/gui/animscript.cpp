@@ -173,6 +173,8 @@ bool AnimScript::load(){
                 type = Param::STRING;
             else if(sType == "label")
                 type = Param::LABEL;
+            else if(sType == "list")
+                type = Param::LIST;
             else
                 continue;
             // "param <type> <name> <prefix> <postfix> <default>"
@@ -185,8 +187,25 @@ bool AnimScript::load(){
             // Don't allow predefined params
             if(name == "trigger" || name == "kptrigger" || name == "kpmode" || name == "duration" || name == "delay" || name == "kpdelay" || name == "repeat" || name == "kprepeat" || name == "stop" || name == "kpstop" || name == "kpmodestop" || name == "kprelease")
                 continue;
-            Param parsed_param = { type, name, prefix, postfix, def, minimum, maximum };
+            Param parsed_param = { type, name, prefix, postfix, def, minimum, maximum, {} };
             _info.params.append(parsed_param);
+        } else if(param == "listitem"){
+            // "listitem <param name> <id>=<label>" -- must follow the "param list ..." line
+            // it belongs to (see CKB_PARAM_LIST/CKB_LISTITEM in animation.h).
+            if(count < 3)
+                continue;
+            QString targetName = components[1].toLower();
+            int eq = components[2].indexOf('=');
+            if(eq < 0)
+                continue;
+            QString id = urlParam(components[2].left(eq));
+            QString label = urlParam(components[2].mid(eq + 1));
+            for(int i = 0; i < _info.params.count(); i++){
+                if(_info.params[i].name == targetName){
+                    _info.params[i].options.append(qMakePair(id, label));
+                    break;
+                }
+            }
         } else if(param == "preset"){
             // Add preset
             QString name = urlParam(components.at(1));
@@ -218,41 +237,41 @@ bool AnimScript::load(){
     double defaultDuration = -1.;
     if(!_info.absoluteTime){
         defaultDuration = 1.;
-        Param duration = { Param::DOUBLE, "duration", "", "", defaultDuration, 0.1, ONE_DAY };
+        Param duration = { Param::DOUBLE, "duration", "", "", defaultDuration, 0.1, ONE_DAY, {} };
         _info.params.append(duration);
     }
-    Param trigger = { Param::BOOL, "trigger", "", "", true, 0, 0 };
+    Param trigger = { Param::BOOL, "trigger", "", "", true, 0, 0, {} };
     _info.params.append(trigger);
-    Param kptrigger = { Param::BOOL, "kptrigger", "", "", false, 0, 0 };
+    Param kptrigger = { Param::BOOL, "kptrigger", "", "", false, 0, 0, {} };
     _info.params.append(kptrigger);
     if(_info.absoluteTime || !_info.repeat)
         _info.preempt = false;
-    Param kpmode = { Param::LONG, "kpmode", "", "", 1, 0, 0 };
+    Param kpmode = { Param::LONG, "kpmode", "", "", 1, 0, 0, {} };
     if(_info.kpMode)
         kpmode.defaultValue = 0;
     _info.params.append(kpmode);
-    Param delay = { Param::DOUBLE, "delay", "", "", 0., 0., ONE_DAY };
-    Param kpdelay = { Param::DOUBLE, "kpdelay", "", "", 0., 0., ONE_DAY };
+    Param delay = { Param::DOUBLE, "delay", "", "", 0., 0., ONE_DAY, {} };
+    Param kpdelay = { Param::DOUBLE, "kpdelay", "", "", 0., 0., ONE_DAY, {} };
     _info.params.append(delay);
     _info.params.append(kpdelay);
-    Param kpmodestop = { Param::BOOL, "kpmodestop", "", "", false, 0, 0 };
-    Param kprelease = { Param::BOOL, "kprelease", "", "", false, 0, 0 };
+    Param kpmodestop = { Param::BOOL, "kpmodestop", "", "", false, 0, 0, {} };
+    Param kprelease = { Param::BOOL, "kprelease", "", "", false, 0, 0, {} };
     _info.params.append(kpmodestop);
     _info.params.append(kprelease);
     if(_info.repeat){
-        Param repeat = { Param::DOUBLE, "repeat", "", "", defaultDuration, 0.1, ONE_DAY };
-        Param kprepeat = { Param::DOUBLE, "kprepeat", "", "", defaultDuration, 0.1, ONE_DAY };
+        Param repeat = { Param::DOUBLE, "repeat", "", "", defaultDuration, 0.1, ONE_DAY, {} };
+        Param kprepeat = { Param::DOUBLE, "kprepeat", "", "", defaultDuration, 0.1, ONE_DAY, {} };
         // When repeats are enabled, stop and kpstop are LONG values (number of repeats)
-        Param stop = { Param::LONG, "stop", "", "", -1, 0, 1000 };
-        Param kpstop = { Param::LONG, "kpstop", "", "", 0, 0, 1000 };
+        Param stop = { Param::LONG, "stop", "", "", -1, 0, 1000, {} };
+        Param kpstop = { Param::LONG, "kpstop", "", "", 0, 0, 1000, {} };
         _info.params.append(repeat);
         _info.params.append(kprepeat);
         _info.params.append(stop);
         _info.params.append(kpstop);
     } else {
         // When repeats are disabled, stop and kpstop are DOUBLE values (seconds)
-        Param stop = { Param::DOUBLE, "stop", "", "", -1., 0.1, ONE_DAY };
-        Param kpstop = { Param::DOUBLE, "kpstop", "", "", -1., 0.1, ONE_DAY };
+        Param stop = { Param::DOUBLE, "stop", "", "", -1., 0.1, ONE_DAY, {} };
+        Param kpstop = { Param::DOUBLE, "kpstop", "", "", -1., 0.1, ONE_DAY, {} };
         _info.params.append(stop);
         _info.params.append(kpstop);
     }
