@@ -193,15 +193,41 @@ def parse_info(text):
 
 
 def listitem_ids(info):
-    """Decodes 'sensor <id>=<label>' listitem lines (id/label are
-    percent-encoded on the wire, see printurl() in animation.h) into a
+    """Decodes 'sensor <id>=<label> <group>' listitem lines (id/label/group
+    are percent-encoded on the wire, see printurl() in animation.h) into a
     plain list of ids."""
     ids = []
     for li in info["listitems"]:
         rest = li.split(" ", 1)[1] if " " in li else li
-        encoded_id = rest.split("=", 1)[0]
+        encoded_id = rest.split(" ", 1)[0].split("=", 1)[0]
         ids.append(unquote(encoded_id))
     return ids
+
+
+def listitem_groups(info):
+    """Decodes the trailing <group> token of each 'sensor <id>=<label>
+    <group>' listitem line."""
+    groups = []
+    for li in info["listitems"]:
+        rest = li.split(" ", 1)[1] if " " in li else li
+        pieces = rest.split(" ", 1)
+        groups.append(unquote(pieces[1]) if len(pieces) > 1 else "")
+    return groups
+
+
+def run_ckb_query(binary, name, value, timeout, env=None):
+    """Runs `<binary> --ckb-query <name> <value>`, returns (elapsed_seconds,
+    stdout_text_stripped)."""
+    start = time.monotonic()
+    result = subprocess.run(
+        [binary, "--ckb-query", name, value],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=env,
+    )
+    elapsed = time.monotonic() - start
+    return elapsed, result.stdout.strip()
 
 
 class Result:
@@ -260,6 +286,65 @@ def test_hwsensor_list_param(result, binary):
             all(li.startswith("sensor ") for li in info["listitems"]),
             info["listitems"],
         )
+    groups = listitem_groups(info)
+    known_groups = {"System (hwmon)", "OpenLinkHub"}
+    result.check(
+        "hwsensor: every listitem carries a known non-empty group",
+        len(groups) > 0 and all(g in known_groups for g in groups),
+        groups,
+    )
+    result.check(
+        "hwsensor: --ckb-info advertises query support",
+        info.get("query") == "on",
+        info.get("query"),
+    )
+
+
+def test_query_mode(result, binary):
+    """--ckb-query <param> <value> is the one-shot mode the GUI uses to show
+    a live reading next to the sensor dropdown (see CKB_ENABLE_QUERY in
+    animation.h) -- must never call sensor_discover_all(), so it stays fast
+    even when olh is unreachable, and must never error out with a non-error
+    exit status."""
+    elapsed, out = run_ckb_query(binary, "sensor", "fake:42", timeout=1.5)
+    result.check("query: fake:42 returns the deterministic value", out == "value 42.0", out)
+    result.check("query: fake: is effectively instant", elapsed < 0.2, f"took {elapsed:.3f}s")
+
+    _, out = run_ckb_query(binary, "sensor", "bogus:whatever", timeout=1.5)
+    result.check("query: unknown prefix reports error", out == "error", out)
+
+    _, out = run_ckb_query(binary, "not_sensor", "fake:42", timeout=1.5)
+    result.check("query: unknown param name reports error", out == "error", out)
+
+    _, out = run_ckb_query(binary, "sensor", "hwmon:nvme/temp1", timeout=1.5)
+    result.check(
+        "query: real hwmon sensor returns a parseable value",
+        out.startswith("value ") and _is_float(out[len("value "):]),
+        out,
+    )
+
+    # Query must stay within its own budget even against a hanging olh peer --
+    # this is the number that decides whether the GUI shows a value or times out.
+    hang = HangServer()
+    try:
+        env_hang = dict(os.environ, HWSENSOR_OLH_URL=f"http://127.0.0.1:{hang.port}/api/devices/")
+        elapsed, out = run_ckb_query(binary, "sensor", "olh:x/0/temperature", timeout=1.5, env=env_hang)
+        result.check("query: hanging olh peer reports error", out == "error", out)
+        result.check(
+            "query: hanging olh peer still finishes well under the 1s GUI budget",
+            elapsed < 0.7,
+            f"took {elapsed:.3f}s",
+        )
+    finally:
+        hang.close()
+
+
+def _is_float(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 
 DEFAULT_GRADIENT = "0:ff00ff00 50:ffffff00 100:ffff0000"
@@ -807,6 +892,7 @@ def main():
     print("\n== Testing 'hwsensor' ==")
     test_basic_protocol(result, hwsensor, "hwsensor")
     test_hwsensor_list_param(result, hwsensor)
+    test_query_mode(result, hwsensor)
     test_gradient_math(result, hwsensor)
     test_fallback_behavior(result, hwsensor)
     test_frame_latency_under_load(result, hwsensor)

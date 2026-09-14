@@ -5,10 +5,15 @@
 
 #define SENSOR_ID_MAX     256
 #define SENSOR_LABEL_MAX  128
+#define SENSOR_GROUP_MAX  48
 
 typedef struct {
     char id[SENSOR_ID_MAX];
     char label[SENSOR_LABEL_MAX];
+    /* ASCII display name of the backend that found this sensor (e.g. "System
+     * (hwmon)", "OpenLinkHub") -- lets the GUI offer a source filter without
+     * knowing anything about individual backends. */
+    char group[SENSOR_GROUP_MAX];
 } sensor_desc;
 
 typedef struct {
@@ -18,7 +23,7 @@ typedef struct {
 } sensor_list;
 
 void sensor_list_init(sensor_list* list);
-void sensor_list_add(sensor_list* list, const char* id, const char* label);
+void sensor_list_add(sensor_list* list, const char* id, const char* label, const char* group);
 void sensor_list_free(sensor_list* list);
 
 /* Aggregates every real backend's discovery. Called only from ckb_info(),

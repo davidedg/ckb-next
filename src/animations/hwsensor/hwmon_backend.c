@@ -116,7 +116,7 @@ static void discover_leaves(sensor_list* list, const hwmon_chip* chip, int uniqu
         else
             snprintf(label, sizeof(label), "%.48s %.16s - %s", chip->chip_name, leaf, unit);
 
-        sensor_list_add(list, id, label);
+        sensor_list_add(list, id, label, "System (hwmon)");
     }
     closedir(d);
 }

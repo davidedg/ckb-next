@@ -110,7 +110,7 @@ bool AnimScript::load(){
     }
     // Set defaults for performance info
     _info.kpMode = KP_NONE;
-    _info.absoluteTime = _info.preempt = _info.liveParams = false;
+    _info.absoluteTime = _info.preempt = _info.liveParams = _info.queryable = false;
     _info.repeat = true;
     // Read output
     QString line;
@@ -145,6 +145,8 @@ bool AnimScript::load(){
             _info.preempt = (components[1] == "on");
         else if(param == "parammode")
             _info.liveParams = (components[1] == "live");
+        else if(param == "query")
+            _info.queryable = (components[1] == "on");
         else if(param == "param"){
             // Read parameter
             if(count < 3)
@@ -190,8 +192,9 @@ bool AnimScript::load(){
             Param parsed_param = { type, name, prefix, postfix, def, minimum, maximum, {} };
             _info.params.append(parsed_param);
         } else if(param == "listitem"){
-            // "listitem <param name> <id>=<label>" -- must follow the "param list ..." line
-            // it belongs to (see CKB_PARAM_LIST/CKB_LISTITEM in animation.h).
+            // "listitem <param name> <id>=<label> <group>" -- must follow the "param list ..."
+            // line it belongs to (see CKB_PARAM_LIST/CKB_LISTITEM in animation.h). group is
+            // optional for older scripts; missing means "ungrouped".
             if(count < 3)
                 continue;
             QString targetName = components[1].toLower();
@@ -200,9 +203,10 @@ bool AnimScript::load(){
                 continue;
             QString id = urlParam(components[2].left(eq));
             QString label = urlParam(components[2].mid(eq + 1));
+            QString group = (count >= 4) ? urlParam(components[3]) : QString();
             for(int i = 0; i < _info.params.count(); i++){
                 if(_info.params[i].name == targetName){
-                    _info.params[i].options.append(qMakePair(id, label));
+                    _info.params[i].options.append({id, label, group});
                     break;
                 }
             }

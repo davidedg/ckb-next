@@ -13,6 +13,7 @@
  * along with hwsensor.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define CKB_ENABLE_QUERY
 #include <ckb-next/animation.h>
 #include <pthread.h>
 #include <time.h>
@@ -53,7 +54,7 @@ void ckb_info(){
     sensor_list_init(&discovered);
     sensor_discover_all(&discovered);
     for(size_t i = 0; i < discovered.count; i++)
-        CKB_LISTITEM("sensor", discovered.items[i].id, discovered.items[i].label);
+        CKB_LISTITEM("sensor", discovered.items[i].id, discovered.items[i].label, discovered.items[i].group);
     sensor_list_free(&discovered);
 
     CKB_PARAM_GRADIENT("color", "Color:", "", "0:ff00ff00 50:ffffff00 100:ffff0000");
@@ -131,6 +132,18 @@ void ckb_parameter(ckb_runctx* context, const char* name, const char* value){
     CKB_PARSE_DOUBLE("value_min", &g_value_min){}
     CKB_PARSE_DOUBLE("value_max", &g_value_max){}
     CKB_PARSE_ARGB("fallback", &g_fallback_a, &g_fallback_r, &g_fallback_g, &g_fallback_b){}
+}
+
+void ckb_query_value(const char* name, const char* value, char* out, size_t out_size){
+    if(strcmp(name, "sensor") != 0){
+        snprintf(out, out_size, "error");
+        return;
+    }
+    double v;
+    if(sensor_read(value, &v))
+        snprintf(out, out_size, "value %.1f", v);
+    else
+        snprintf(out, out_size, "error");
 }
 
 void ckb_start(ckb_runctx* context, int state){

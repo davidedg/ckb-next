@@ -125,14 +125,14 @@ static void discover_from_payload(sensor_list* list, const cJSON* root){
                 snprintf(id, sizeof(id), "%s%s/%s/temperature", OLH_PREFIX, serial, channel_id);
                 char label[SENSOR_LABEL_MAX];
                 snprintf(label, sizeof(label), "%s - C", name);
-                sensor_list_add(list, id, label);
+                sensor_list_add(list, id, label, "OpenLinkHub");
             }
             if(cJSON_IsTrue(has_speed)){
                 char id[SENSOR_ID_MAX];
                 snprintf(id, sizeof(id), "%s%s/%s/rpm", OLH_PREFIX, serial, channel_id);
                 char label[SENSOR_LABEL_MAX];
                 snprintf(label, sizeof(label), "%s - RPM", name);
-                sensor_list_add(list, id, label);
+                sensor_list_add(list, id, label, "OpenLinkHub");
             }
         }
     }

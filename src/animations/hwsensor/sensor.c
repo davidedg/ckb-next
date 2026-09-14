@@ -15,7 +15,7 @@ void sensor_list_init(sensor_list* list){
     list->capacity = 0;
 }
 
-void sensor_list_add(sensor_list* list, const char* id, const char* label){
+void sensor_list_add(sensor_list* list, const char* id, const char* label, const char* group){
     if(list->count == list->capacity){
         size_t new_capacity = list->capacity ? list->capacity * 2 : 8;
         sensor_desc* grown = realloc(list->items, new_capacity * sizeof(sensor_desc));
@@ -27,6 +27,7 @@ void sensor_list_add(sensor_list* list, const char* id, const char* label){
     sensor_desc* d = &list->items[list->count];
     snprintf(d->id, SENSOR_ID_MAX, "%s", id);
     snprintf(d->label, SENSOR_LABEL_MAX, "%s", label);
+    snprintf(d->group, SENSOR_GROUP_MAX, "%s", group);
     list->count++;
 }
 

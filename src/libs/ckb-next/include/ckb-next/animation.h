@@ -83,9 +83,11 @@
 // A "list" param is a dropdown of choices. CKB_PARAM_LIST declares the param itself (default is
 // the id of the initially-selected choice); it MUST be followed immediately by one CKB_LISTITEM
 // call per choice, before any other CKB_PARAM_*/CKB_PARAM_LIST call. The value ckb_parameter()
-// receives for a list param is always the chosen item's id, never its label.
+// receives for a list param is always the chosen item's id, never its label. group is an
+// optional ASCII display name (may be empty) the GUI can use to offer a secondary filter when
+// choices fall into more than one group -- purely cosmetic, never sent back by ckb_parameter().
 #define CKB_PARAM_LIST(name, prefix, postfix, default)              CKB_PARAM("list", name, prefix, postfix, printurl(default))
-#define CKB_LISTITEM(name, id, label)                               CKB_CONTAINER( printf("listitem %s ", name); printurl(id); printf("="); printurl(label); printf("\n"); )
+#define CKB_LISTITEM(name, id, label, group)                        CKB_CONTAINER( printf("listitem %s ", name); printurl(id); printf("="); printurl(label); printf(" "); printurl(group); printf("\n"); )
 #define CKB_PARAM_LABEL(name, text)                                 CKB_PARAM("label", name, text, "", )
 
 #define CKB_PRESET_START(name)                                      CKB_CONTAINER( printf("preset "); printurl(name); )
@@ -360,6 +362,19 @@ extern void ckb_start(ckb_runctx*, int);
 extern void ckb_time(ckb_runctx*, double);
 extern int ckb_frame(ckb_runctx*);
 
+// Optional: define CKB_ENABLE_QUERY before including this header to opt into
+// "--ckb-query <param> <value>" support -- a one-shot, no-keymap invocation
+// the GUI may use to fetch a live display value for one entry of a "list"
+// param (e.g. the current reading of a selected sensor) without running the
+// full animation. Never called with a running "--ckb-run" instance; write
+// out (NUL-terminated, up to out_size) either "value <text>" or "error".
+// ckb_info() must still declare its params/presets as usual -- the GUI reads
+// "query on" from --ckb-info output (emitted automatically below) to learn
+// this is supported before ever invoking --ckb-query.
+#ifdef CKB_ENABLE_QUERY
+extern void ckb_query_value(const char* name, const char* value, char* out, size_t out_size);
+#endif
+
 // Update parameter values
 void ckb_read_params(ckb_runctx* ctx){
     char cmd[CKB_MAX_WORD], param[CKB_MAX_WORD], value[CKB_MAX_WORD];
@@ -381,6 +396,9 @@ int main(int argc, char *argv[]){
     if(argc == 2){
         if(!strcmp(argv[1], "--ckb-info")){
             ckb_info();
+#ifdef CKB_ENABLE_QUERY
+            printf("query on\n");
+#endif
             fflush(stdout);
             return 0;
         } else if(!strcmp(argv[1], "--ckb-run")){
@@ -523,6 +541,15 @@ int main(int argc, char *argv[]){
             return 0;
         }
     }
+#ifdef CKB_ENABLE_QUERY
+    else if(argc == 4 && !strcmp(argv[1], "--ckb-query")){
+        char out[CKB_MAX_WORD] = "error";
+        ckb_query_value(argv[2], argv[3], out, sizeof(out));
+        printf("%s\n", out);
+        fflush(stdout);
+        return 0;
+    }
+#endif
     printf("This program must be run from within ckb-next\n");
     return -1;
 }
