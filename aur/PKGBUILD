@@ -4,7 +4,7 @@
 # Fork:     https://github.com/davidedg/ckb-next
 
 pkgname=ckb-next-ddg
-pkgver=0.6.2.ddg.2
+pkgver=0.6.2.ddg.3
 pkgrel=1
 pkgdesc="Corsair Keyboard and Mouse RGB Driver — ddg fork (device-scoped profile/mode CLI, WITH_ENV_VARS)"
 arch=('x86_64')
