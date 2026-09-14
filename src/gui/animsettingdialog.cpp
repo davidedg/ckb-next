@@ -59,6 +59,7 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
         // Configure and display main widget
         QWidget* widget = nullptr;
         int colSpan = 1;
+        int extraRows = 0;
         QString postfix = param.postfix;
         switch(param.type){
         case AnimScript::Param::BOOL:
@@ -163,6 +164,86 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
                 emit updateParam(param.name);
             });
             break;
+        case AnimScript::Param::LIST:{
+            QComboBox* combo = new QComboBox(this);
+            QString current = value.toString();
+
+            // Distinct non-empty groups, in first-seen order
+            QStringList groups;
+            for(const auto& option : param.options){
+                if(!option.group.isEmpty() && !groups.contains(option.group))
+                    groups.append(option.group);
+            }
+
+            // (Re)builds the choice list, restricted to groupFilter (empty = no filter).
+            // Never drops the currently-selected id, even if the filter hides it -- same
+            // "(unavailable)" placeholder pattern used when the id just isn't discovered.
+            auto populateCombo = [=](const QString& groupFilter){
+                QString keep = combo->count() ? combo->currentData().toString() : current;
+                combo->blockSignals(true);
+                combo->clear();
+                bool found = keep.isEmpty();
+                if(found)
+                    combo->addItem(tr("(none selected)"), QString());
+                for(const auto& option : param.options){
+                    if(!groupFilter.isEmpty() && option.group != groupFilter)
+                        continue;
+                    combo->addItem(option.label, option.id);
+                    if(option.id == keep)
+                        found = true;
+                }
+                if(!found)
+                    combo->addItem(tr("(unavailable) %1").arg(keep), keep);
+                int idx = combo->findData(keep);
+                if(idx >= 0)
+                    combo->setCurrentIndex(idx);
+                combo->blockSignals(false);
+            };
+
+            if(groups.count() >= 2){
+                // Choices span more than one source -- offer a filter combo on the row right
+                // below the list, defaulted to the source of the currently-selected item (if
+                // any). Placed a row *below* (not above) so the generic prefix label -- already
+                // added at `row` before this switch ran -- stays correctly next to the sensor
+                // combo instead of this filter.
+                QString initialGroup;
+                for(const auto& option : param.options){
+                    if(option.id == current){
+                        initialGroup = option.group;
+                        break;
+                    }
+                }
+                QComboBox* sourceCombo = new QComboBox(this);
+                sourceCombo->addItem(tr("(All)"), QString());
+                for(const auto& g : groups)
+                    sourceCombo->addItem(g, g);
+                int sIdx = initialGroup.isEmpty() ? 0 : sourceCombo->findData(initialGroup);
+                sourceCombo->setCurrentIndex(sIdx >= 0 ? sIdx : 0);
+                ui->settingsGrid->addWidget(new QLabel(tr("Source:"), this), row + 1, 1);
+                ui->settingsGrid->addWidget(sourceCombo, row + 1, 3, 1, 3);
+                connect(sourceCombo, OVERLOAD_PTR(int, QComboBox, activated), [=] () {
+                    populateCombo(sourceCombo->currentData().toString());
+                });
+                extraRows = 1;
+                populateCombo(sIdx > 0 ? sourceCombo->currentData().toString() : QString());
+            } else {
+                populateCombo(QString());
+            }
+
+            widget = combo;
+            colSpan = 3;
+            connect(combo, OVERLOAD_PTR(int, QComboBox, activated), [=] () {
+                emit updateParam(param.name);
+            });
+
+            // Only the first query-capable list param gets a live display value (no script
+            // declares more than one today; see queryParamName in animsettingdialog.h).
+            if(script->hasQuery() && queryParamName.isEmpty()){
+                queryParamName = param.name;
+                queryCombo = combo;
+            }
+            break;
+        }
         case AnimScript::Param::LABEL:
             widget = new QLabel(this);
             ((QLabel*)widget)->setText(param.prefix);
@@ -196,15 +277,24 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
                 ui->settingsGrid->addWidget(spinner, row, 4);
                 colSpan = 2;
             }
-            // Display postfix label on the right
-            ui->settingsGrid->addWidget(new QLabel(postfix, this), row, 3 + colSpan, 1, 4 - colSpan);
+            // Display postfix label on the right -- for the one list param with a live query
+            // value (if any), this slot shows that value instead of a static postfix string.
+            if(param.name == queryParamName && !queryParamName.isEmpty()){
+                queryLabel = new QLabel(this);
+                // The value arrives asynchronously, after the dialog's initial adjustSize() --
+                // reserve width for it now so the window doesn't need to grow later to show it.
+                queryLabel->setMinimumWidth(70);
+                ui->settingsGrid->addWidget(queryLabel, row, 3 + colSpan, 1, 4 - colSpan);
+            } else {
+                ui->settingsGrid->addWidget(new QLabel(postfix, this), row, 3 + colSpan, 1, 4 - colSpan);
+            }
             if(colSpan < 3 && !rSpacePlaced){
                 // Add a spacer to compress short elements to the left
                 ui->settingsGrid->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum), row, 4 + colSpan);
                 rSpacePlaced = true;
             }
         }
-        row++;
+        row += 1 + extraRows;
     }
     // Add playback info at bottom
     ui->settingsGrid->addItem(new QSpacerItem(0, 10, QSizePolicy::Fixed, QSizePolicy::Fixed), row++, 6);
@@ -389,6 +479,44 @@ AnimSettingDialog::AnimSettingDialog(QWidget* parent, KbAnim* anim) :
 
     setMinimumSize(minimumSizeHint());
     adjustSize();
+
+    if(!queryParamName.isEmpty()){
+        queryProcess = new QProcess(this);
+        connect(queryProcess, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [=] () {
+            QString out = QString::fromUtf8(queryProcess->readAllStandardOutput()).trimmed();
+            queryLabel->setText(out.startsWith("value ") ? out.mid(6) : QString());
+        });
+        queryTimer = new QTimer(this);
+        connect(queryTimer, &QTimer::timeout, this, &AnimSettingDialog::pollQueryValue);
+        queryTimer->start(1000);
+        pollQueryValue();
+    }
+}
+
+void AnimSettingDialog::pollQueryValue(){
+    if(!queryLabel || !queryCombo || !queryProcess)
+        return;
+    if(queryProcess->state() != QProcess::NotRunning)
+        // Previous query (e.g. a slow/unreachable backend) hasn't finished yet -- skip this tick
+        // rather than piling up processes.
+        return;
+    QString id = queryCombo->currentData().toString();
+    if(id.isEmpty()){
+        queryLabel->setText(QString());
+        return;
+    }
+    queryProcess->start(_anim->script()->path(), QStringList() << "--ckb-query" << queryParamName << id);
+    if(!queryProcess->waitForStarted(200))
+        return;
+    // Never let a hung/misbehaving script (one that ignores argv and waits on stdin) block the
+    // dialog indefinitely -- same 1s budget already used for --ckb-info. Tagged with the
+    // generation at schedule time so a stale watchdog from an earlier poll can never kill a
+    // newer, unrelated, still-healthy query that happens to be in flight when it fires.
+    int gen = ++queryGeneration;
+    QTimer::singleShot(1000, queryProcess, [=] () {
+        if(gen == queryGeneration && queryProcess->state() != QProcess::NotRunning)
+            queryProcess->kill();
+    });
 }
 
 void AnimSettingDialog::newDuration(double duration){
@@ -497,6 +625,13 @@ void AnimSettingDialog::updateParam(const QString& name){
         _anim->parameter(name, widget->text());
         break;
     }
+    case AnimScript::Param::LIST:{
+        QComboBox* widget = (QComboBox*)settingWidgets[name];
+        _anim->parameter(name, widget->currentData().toString());
+        if(name == queryParamName)
+            pollQueryValue();
+        break;
+    }
     default:
         break;
     }
@@ -507,6 +642,15 @@ QString AnimSettingDialog::name() const {
 }
 
 AnimSettingDialog::~AnimSettingDialog(){
+    if(queryTimer)
+        queryTimer->stop();
+    if(queryProcess){
+        queryProcess->disconnect();
+        if(queryProcess->state() != QProcess::NotRunning){
+            queryProcess->kill();
+            queryProcess->waitForFinished(200);
+        }
+    }
     delete ui;
 }
 

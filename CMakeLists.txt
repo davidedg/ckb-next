@@ -108,12 +108,14 @@ cmake_dependent_option(WITH_PLASMA   "Build with 'Plasma' animation."   ON "WITH
 
 if (LINUX)
     cmake_dependent_option(WITH_MVIZ  "Build with music visualizer."           ON "WITH_ANIMATIONS;WITH_GUI" OFF)
+    cmake_dependent_option(WITH_HWSENSOR "Build with 'Hardware sensor' animation." ON "WITH_ANIMATIONS;WITH_GUI" OFF)
     cmake_dependent_option(USE_XCB    "Build with features that require XCB."  ON  "WITH_GUI" OFF)
     cmake_dependent_option(USE_DBUS_MENU "Build with DBus support for the tray."  ON  "WITH_GUI" OFF)
     cmake_dependent_option(USE_WAYLAND "Build with features that require Wayland."  ON  "WITH_GUI;PREFER_QT6" OFF)
     option(USE_PORTAUDIO              "Use portaudio for music visualizer."    OFF)
 else ()
     cmake_dependent_option(WITH_MVIZ   "Build with music visualizer."          OFF "WITH_ANIMATIONS;WITH_GUI" OFF)
+    cmake_dependent_option(WITH_HWSENSOR "Build with 'Hardware sensor' animation." OFF "WITH_ANIMATIONS;WITH_GUI" OFF)
     set(USE_PORTAUDIO ON)
 endif ()
 # Options: daemon

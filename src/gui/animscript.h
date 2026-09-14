@@ -31,7 +31,8 @@ public:
             AGRADIENT,
             ANGLE,
             STRING,
-            LABEL
+            LABEL,
+            LIST
         };
         Type        type;
         // Internal name
@@ -44,6 +45,15 @@ public:
         // Minimum and maximum values (apply to int and double)
         QVariant    minimum;
         QVariant    maximum;
+        // One selectable choice (LIST only). group is an optional ASCII display name used to
+        // offer a source filter when choices span more than one group; empty if ungrouped.
+        struct ListOption {
+            QString id;
+            QString label;
+            QString group;
+        };
+        // Selectable choices (LIST only), in declaration order
+        QList<ListOption> options;
     };
 
     // Global animation path
@@ -65,13 +75,16 @@ public:
     inline const QString&       license() const         { return _info.license; }
     inline const QString&       description() const     { return _info.description; }
     inline bool                 hasKeypress() const     { return _info.kpMode != KP_NONE; }
+    // Whether this script supports "--ckb-query <param> <value>" for a live display value
+    // (see CKB_ENABLE_QUERY in animation.h) -- read from the "query on" line in --ckb-info output.
+    inline bool                 hasQuery() const        { return _info.queryable; }
     inline const QStringList&   presets() const         { return _presets; }
     inline const PresetValue&   preset(int index) const { return _presetValues[index]; }
     inline const QString&       path() const             { return _path; }
 
     // Parameters, in the order they were given
     inline QListIterator<Param> paramIterator() const               { return _info.params; }
-    inline Param                param(const QString& name) const    { QListIterator<Param> i(_info.params); while(i.hasNext()){ Param p = i.next(); if(p.name == name) return p; } return ((Param[]){ { Param::INVALID, "", "", "", 0, 0, 0 } })[0]; }
+    inline Param                param(const QString& name) const    { QListIterator<Param> i(_info.params); while(i.hasNext()){ Param p = i.next(); if(p.name == name) return p; } return ((Param[]){ { Param::INVALID, "", "", "", 0, 0, 0, {} } })[0]; }
     inline bool                 hasParam(const QString& name) const { QListIterator<Param> i(_info.params); while(i.hasNext()){ if(i.next().name == name) return true; } return false; }
 
     // Creates a usable script object with the given parent object. Returns null if no such script exists.
@@ -121,7 +134,7 @@ private:
         QList<Param> params;
         // Playback flags
         int kpMode :3;
-        bool absoluteTime :1, repeat :1, preempt :1, liveParams :1;
+        bool absoluteTime :1, repeat :1, preempt :1, liveParams :1, queryable :1;
     } _info;
     const static int    KP_NONE = 0, KP_NAME = 1, KP_POSITION = 2;
     QStringList         _presets;
