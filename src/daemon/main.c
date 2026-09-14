@@ -17,6 +17,7 @@
 extern _Atomic int reset_stop;
 extern int features_mask;
 extern int enable_experimental;
+extern int kvm_doublesend;
 extern const char pidpath[];
 int sighandler_pipe[2] = { 0, 0 };
 
@@ -180,7 +181,12 @@ int main(int argc, char** argv){
                         "        Number of software mode slots to keep per device (default %d).\n"
                         "        Raise this if your profiles have more modes than that; it's unrelated\n"
                         "        to the (much lower) number of modes each device can actually store\n"
-                        "        onboard for hardware profiles.\n",
+                        "        onboard for hardware profiles.\n"
+                        "    --kvm-doublesend\n"
+                        "        Resend lighting twice on every mode switch. Works around USB KVM\n"
+                        "        switches/hubs that occasionally drop or delay a write, which\n"
+                        "        otherwise leaves a device showing the previous mode's colors until\n"
+                        "        some other lighting update follows. Not needed on a direct connection.\n",
                         CKB_NEXT_DESCRIPTION, devpath, MODE_COUNT_DEFAULT);
             return 0;
         } else if (!strcmp(argv[i], "--version")){
@@ -305,6 +311,9 @@ int main(int argc, char** argv){
             }
 
             return 0;
+        } else if(!strcmp(argument, "--kvm-doublesend")) {
+            kvm_doublesend = 1;
+            ckb_info_nofile("Resending lighting twice on mode switch (KVM workaround)");
         } else if(!strcmp(argument, "--enable-experimental")) {
             enable_experimental = 1;
 #ifdef ckb_next_VERSION_IS_RELEASE

@@ -9,6 +9,8 @@
 #include "usb.h"
 #include <ckbnextconfig.h>
 
+extern int kvm_doublesend;
+
 static const char* const cmd_strings[CMD_COUNT - 1] = {
     // NONE is implicit
     "delay",
@@ -240,6 +242,17 @@ int readcmd(usbdevice* kb, char* line){
                 // Set mode light for non-RGB K95
                 int index = INDEX_OF(mode, profile->mode);
                 vt->setmodeindex(kb, index);
+                if(kvm_doublesend){
+                    // Some USB KVM switches/hubs occasionally drop or delay a
+                    // write, which leaves a device showing the previous mode's
+                    // colors until some other lighting update follows. Send the
+                    // new mode's colors twice so the switch is visible
+                    // immediately instead of on the next unrelated lighting
+                    // change (which may be an arbitrary time later for a
+                    // static, non-animated mode).
+                    TRY_WITH_RESET(vt->updatergb(kb, 1));
+                    TRY_WITH_RESET(vt->updatergb(kb, 1));
+                }
             }
             continue;
         case HWLOAD: case HWSAVE:{

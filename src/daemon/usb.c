@@ -166,6 +166,11 @@ int features_mask = -1;
 // Enable experimental support for not fully supported devices
 int enable_experimental = 0;
 
+// Resend lighting twice on every mode switch. Works around USB KVM switches/hubs
+// that occasionally drop or delay a write, which otherwise leaves a device
+// showing the previous mode's colors until some other lighting update follows.
+int kvm_doublesend = 0;
+
 /// brief .
 ///
 /// vendor_str returns "corsair" if the given \a vendor argument is equal to \a V_CORSAIR \c (0x1bc)
