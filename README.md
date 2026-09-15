@@ -6,8 +6,6 @@
 
 > __DISCLAIMER__: ckb-next is not an official Corsair product. It is licensed under the GNU General Public License (version 2) in the hope that it will be useful, but with NO WARRANTY of any kind.
 
-![Screenshot](https://i.imgur.com/zMK9jOP.png)
-
 Additional features of this fork [davidedg/ckb-next](https://github.com/davidedg/ckb-next):
 
 <sup>  **_NOTE:_** This code is AI-assisted and the upstream developers have a strict no-AI policy, hence the separate fork.</sup>
@@ -20,7 +18,11 @@ Additional features of this fork [davidedg/ckb-next](https://github.com/davidedg
 - Daemon-side fix for profiles with more modes than hardware mode slots:
   configurable mode-slot count (`--modecount`), correct mode-name sync to the
   daemon, and a GUI warning/indicator for over-limit profiles
+- Hardware Sensor animation: maps a live hardware sensor reading (e.g. CPU/GPU
+  temperature or fan speed, via Linux `hwmon` or the [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub)
+  API) onto a color gradient, with source filtering and a live value display
 
+![Screenshot](https://i.imgur.com/zMK9jOP.png)
 
 \
 Major features:

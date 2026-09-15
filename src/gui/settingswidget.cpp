@@ -109,6 +109,8 @@ SettingsWidget::SettingsWidget(QWidget *parent) :
 #endif
     QString copyrightText = QString("© 2014-2016 <a href=\"https://github.com/ccMSC/\" style=\"text-decoration:none;\">ccMSC</a>.<br/>© 2017-%1 <a href=\"https://github.com/ckb-next/ckb-next/graphs/contributors\" style=\"text-decoration:none;\">%2</a>.").arg(CKB_NEXT_COPYRIGHT_YEAR, tr("The ckb-next development team"));
 
+    copyrightText.append(tr("<br/>This fork maintained by <a href=\"https://github.com/davidedg\" style=\"text-decoration:none;\">davidedg</a>."));
+
 #ifndef OS_MAC_LEGACY
 #ifdef Q_OS_MACOS
     copyrightText.append(tr("<br/>Special thanks to <a href=\"https://github.com/tekezo\" style=\"text-decoration:none;\">tekezo</a> for <a href=\"https://github.com/tekezo/Karabiner-VirtualHIDDevice\" style=\"text-decoration:none;\">VirtualHIDDevice</a>."));
