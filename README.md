@@ -4,7 +4,7 @@
 
 > __DISCLAIMER__: ckb-next is not an official Corsair product. It is licensed under the GNU General Public License (version 2) in the hope that it will be useful, but with NO WARRANTY of any kind.
 
-Additional features of this fork [davidedg/ckb-next-ddg](https://github.com/davidedg/ckb-next-ddg):
+### Additional features of this fork [davidedg/ckb-next-ddg](https://github.com/davidedg/ckb-next-ddg):
 
 <sup>  **_NOTE:_** This code is AI-assisted and the upstream developers have a strict no-AI policy, hence the separate fork.</sup>
 
