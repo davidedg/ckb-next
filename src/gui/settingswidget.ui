@@ -540,7 +540,7 @@
        <item>
         <widget class="QLabel" name="label_3">
          <property name="text">
-          <string notr="true">&lt;a href=&quot;https://github.com/davidedg/ckb-next&quot; style=&quot;text-decoration:none;&quot;&gt;https://github.com/davidedg/ckb-next&lt;/a&gt; - forked from &lt;a href=&quot;https://github.com/ckb-next/ckb-next&quot; style=&quot;text-decoration:none;&quot;&gt;https://github.com/ckb-next/ckb-next&lt;/a&gt;</string>
+          <string notr="true">&lt;a href=&quot;https://github.com/davidedg/ckb-next-ddg&quot; style=&quot;text-decoration:none;&quot;&gt;https://github.com/davidedg/ckb-next-ddg&lt;/a&gt; - forked from &lt;a href=&quot;https://github.com/ckb-next/ckb-next&quot; style=&quot;text-decoration:none;&quot;&gt;https://github.com/ckb-next/ckb-next&lt;/a&gt;</string>
          </property>
          <property name="openExternalLinks">
           <bool>true</bool>

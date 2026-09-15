@@ -1,7 +1,7 @@
 # Maintainer: Davide Del Grande (ddg)
 # Fork of the official Fedora ckb-next package (src.fedoraproject.org/rpms/ckb-next)
 # Upstream: https://github.com/ckb-next/ckb-next
-# Fork:     https://github.com/davidedg/ckb-next
+# Fork:     https://github.com/davidedg/ckb-next-ddg
 #
 # Local build/test (in a disposable Fedora container, e.g. via podman):
 #   podman run --rm -v "$PWD/packaging/fedora:/src/fedora:Z" registry.fedoraproject.org/fedora:latest bash -c '
@@ -19,10 +19,10 @@ Summary:        Corsair Keyboard and Mouse RGB Driver -- ddg fork (device-scoped
 
 License:        GPL-2.0-only
 
-URL:            https://github.com/davidedg/ckb-next
-# Repo name (ckb-next) differs from the package name (ckb-next-ddg); GitHub
-# names the release archive and its root directory after the repo, not the tag.
-Source0:        %{url}/archive/v%{version}/ckb-next-%{version}.tar.gz
+URL:            https://github.com/davidedg/ckb-next-ddg
+# Repo name now matches the package name, so the GitHub release archive and
+# its root directory follow the same name-version pattern as the RPM default.
+Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 # Upstream (and the official Fedora package) provide none of the following files
 Source1:        ckb-next.appdata.xml
@@ -75,7 +75,7 @@ programs launched from key bindings.
 
 
 %prep
-%autosetup -n ckb-next-%{version} -p1
+%autosetup -p1
 
 # Remove the bundled copy now that we build against system kissfft (Patch1)
 rm -rf src/libs/kissfft
