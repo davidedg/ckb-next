@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2014-2016 MSC Contact: qccmsc@gmail.com -->
+<application>
+  <id type="desktop">ckb-next.desktop</id>
+  <name>ckb-next</name>
+  <summary>RGB Driver for Linux and OS X</summary>
+  <summary xml:lang="sv">RGB drivrutin för Linux och OS X</summary>
+  <metadata_license>CC-BY-SA</metadata_license>
+  <project_license>GPL-2</project_license>
+  <translation type="gettext">ckb-next</translation>
+  <description>
+    <p>
+      ckb-next is an open-source driver for Corsair keyboards and mice. It aims
+      to bring the features of their proprietary CUE software to the Linux and
+      Mac operating systems. This project is currently a work in progress, but 
+      it already supports much of the same functionality, including full RGB
+      animations.
+    </p>
+    <p xml:lang="sv">
+      ckb-next är en drivrutin med öppen källkod för tangentbord och möss från
+      Corsair. Dess mål är att ha samma egenskaper som den proprietära CUE 
+      programvaran i operativsystemen Linux och Mac. Detta är ett pågående 
+      arbete, men programvaran stöder redan det mesta av funktionaliteten, också
+      fullständiga RGB-animationer.
+    </p>
+  </description>
+  <screenshots>
+    <screenshot type="default" width="1000" height="750">https://camo.githubusercontent.com/8c6239eb67eb172baa34864f4759b111b2c731f7/68747470733a2f2f692e696d6775722e636f6d2f7a4d4b396a4f502e706e67</screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/ckb-next/ckb-next</url>
+  <updatecontact>johan.heikkila@gmail.com</updatecontact>
+</application>

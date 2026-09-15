@@ -21,14 +21,14 @@ jobs:
         id: ver
         run: echo "pkgver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Bump pkgver/pkgrel in aur/PKGBUILD
+      - name: Bump pkgver/pkgrel in packaging/aur/PKGBUILD
         run: |
-          sed -i "s/^pkgver=.*/pkgver=${{ steps.ver.outputs.pkgver }}/" aur/PKGBUILD
-          sed -i "s/^pkgrel=.*/pkgrel=1/" aur/PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=${{ steps.ver.outputs.pkgver }}/" packaging/aur/PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" packaging/aur/PKGBUILD
 
       - name: Regenerate .SRCINFO (archlinux container)
         run: |
-          docker run --rm -v "$PWD/aur:/pkg" -w /pkg archlinux:base-devel bash -c '
+          docker run --rm -v "$PWD/packaging/aur:/pkg" -w /pkg archlinux:base-devel bash -c '
             useradd -m builder && chown -R builder /pkg &&
             su builder -c "makepkg --printsrcinfo > .SRCINFO"
           '
@@ -48,7 +48,7 @@ jobs:
           git clone ssh://aur@aur.archlinux.org/ckb-next-ddg.git /tmp/aur-repo
           cd /tmp/aur-repo
           git checkout -B master origin/master
-          cp "$GITHUB_WORKSPACE"/aur/PKGBUILD "$GITHUB_WORKSPACE"/aur/.SRCINFO .
+          cp "$GITHUB_WORKSPACE"/packaging/aur/PKGBUILD "$GITHUB_WORKSPACE"/packaging/aur/.SRCINFO .
           git config user.name "davidedg"
           git config user.email "delgrande.davide+archaur@gmail.com"
           git add PKGBUILD .SRCINFO
@@ -60,7 +60,7 @@ jobs:
         run: |
           git config user.name "davidedg"
           git config user.email "delgrande.davide+archaur@gmail.com"
-          git add aur/PKGBUILD aur/.SRCINFO
+          git add packaging/aur/PKGBUILD packaging/aur/.SRCINFO
           git diff --cached --quiet && exit 0
-          git commit -m "chore: sync aur/ to ${{ steps.ver.outputs.pkgver }} [skip ci]"
+          git commit -m "chore: sync packaging/aur/ to ${{ steps.ver.outputs.pkgver }} [skip ci]"
           git push origin HEAD:master
