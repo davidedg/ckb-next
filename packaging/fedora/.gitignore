@@ -1,0 +1,7 @@
+*.tar.gz
+*.rpm
+*.log
+/BUILD/
+/BUILDROOT/
+/RPMS/
+/SRPMS/

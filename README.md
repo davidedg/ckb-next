@@ -4,7 +4,7 @@
 
 > __DISCLAIMER__: ckb-next is not an official Corsair product. It is licensed under the GNU General Public License (version 2) in the hope that it will be useful, but with NO WARRANTY of any kind.
 
-Additional features of this fork [davidedg/ckb-next](https://github.com/davidedg/ckb-next):
+Additional features of this fork [davidedg/ckb-next-ddg](https://github.com/davidedg/ckb-next-ddg):
 
 <sup>  **_NOTE:_** This code is AI-assisted and the upstream developers have a strict no-AI policy, hence the separate fork.</sup>
 
@@ -48,7 +48,7 @@ Most of the information can be found on [ckb-next wiki pages](https://github.com
 
 [Known Issues](https://github.com/ckb-next/ckb-next/wiki/Known-issues).
 
-[Contributing](https://github.com/davidedg/ckb-next/wiki/Contributing).
+[Contributing](https://github.com/davidedg/ckb-next-ddg/wiki/Contributing).
 
 [Community Pipe Animation Scripts](https://github.com/ckb-next/ckb-next/wiki/Advanced-Community-Pipe-Scripts).
 
@@ -57,4 +57,4 @@ Most of the information can be found on [ckb-next wiki pages](https://github.com
 Maintainers reserve the rights to modify and remove issues, pull requests and comments therein, that are denunciating, off-topic, harmful, hateful and overall inappropriate.
 Please be appreciative, humble and kind to each other.
 
-* [GitHub Issues](https://github.com/davidedg/ckb-next/issues)
+* [GitHub Issues](https://github.com/davidedg/ckb-next-ddg/issues)

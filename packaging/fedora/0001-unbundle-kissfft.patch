@@ -1,0 +1,44 @@
+diff --git a/src/animations/mviz/CMakeLists.txt b/src/animations/mviz/CMakeLists.txt
+index 5f2f06c..094d7b6 100644
+--- a/src/animations/mviz/CMakeLists.txt
++++ b/src/animations/mviz/CMakeLists.txt
+@@ -66,12 +66,14 @@ else ()
+     set(AUDIO_LIBRARIES "${PULSEAUDIO_LIBRARIES}")
+ endif ()
+ 
++find_package(kissfft REQUIRED)
++
+ if (MACOS)
+     target_link_libraries(
+         mviz
+             PRIVATE
+               m
+-              KissFFT::KissFFT
++              kissfft::kissfft-float
+               ${CMAKE_PROJECT_NAME}::Animation
+               ${CORESERVICES_LIBRARY}
+               ${COREFOUNDATION_LIBRARY}
+@@ -84,7 +86,7 @@ elseif (LINUX)
+         mviz
+             PRIVATE
+               m
+-              KissFFT::KissFFT
++              kissfft::kissfft-float
+               ${CMAKE_PROJECT_NAME}::Animation
+               "${AUDIO_LIBRARIES}")
+ else()
+diff --git a/src/libs/CMakeLists.txt b/src/libs/CMakeLists.txt
+index db65208..dc03f94 100644
+--- a/src/libs/CMakeLists.txt
++++ b/src/libs/CMakeLists.txt
+@@ -25,10 +25,6 @@
+ #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ #   POSSIBILITY OF SUCH DAMAGE.
+ 
+-if (WITH_MVIZ) # otherwise doesn't make sense to include
+-    add_subdirectory(kissfft)
+-endif ()
+-
+ if (WITH_HWSENSOR)
+     add_subdirectory(cjson)
+ endif ()

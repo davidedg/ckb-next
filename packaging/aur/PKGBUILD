@@ -1,14 +1,14 @@
 # Maintainer: Davide Del Grande (ddg) <AUR-username>
 # Fork of the official Arch ckb-next package by Giovanni Harting <anonfunc@archlinux.org>
 # Upstream: https://github.com/ckb-next/ckb-next
-# Fork:     https://github.com/davidedg/ckb-next
+# Fork:     https://github.com/davidedg/ckb-next-ddg
 
 pkgname=ckb-next-ddg
 pkgver=0.6.2.ddg.4
 pkgrel=1
 pkgdesc="Corsair Keyboard and Mouse RGB Driver — ddg fork (device-scoped profile/mode CLI, WITH_ENV_VARS)"
 arch=('x86_64')
-url='https://github.com/davidedg/ckb-next'
+url='https://github.com/davidedg/ckb-next-ddg'
 license=('GPL-2.0-only')
 provides=("ckb-next=${pkgver%%.ddg.*}")
 conflicts=('ckb-next')
@@ -29,7 +29,7 @@ makedepends=('cmake' 'qt6-tools' 'git')
 # git+ source (not a tarball): needs the real tag history so `git describe
 # --tags` resolves to "0.6.2.ddg.1" inside the build instead of falling back
 # to "-unknown" (see CkbNextDetermineVersion.cmake).
-source=("$pkgname::git+https://github.com/davidedg/ckb-next.git#tag=v$pkgver")
+source=("$pkgname::git+https://github.com/davidedg/ckb-next-ddg.git#tag=v$pkgver")
 sha256sums=('SKIP')
 
 build() {
